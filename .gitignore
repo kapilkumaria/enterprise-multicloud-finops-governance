@@ -1,0 +1,154 @@
+# ============================================================
+# Terraform
+# ============================================================
+
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+!*.example.tfvars.json
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.terraformrc
+terraform.rc
+
+# Keep Terraform dependency lock files in Git
+!.terraform.lock.hcl
+
+
+# ============================================================
+# Terraform plans
+# ============================================================
+
+*.tfplan
+*.plan
+
+
+# ============================================================
+# Infracost
+# ============================================================
+
+.infracost/
+infracost.json
+infracost-*.json
+infracost-*.html
+
+
+# ============================================================
+# Generated reports
+# ============================================================
+
+reports/**/*.json
+reports/**/*.csv
+reports/**/*.html
+reports/**/*.log
+reports/**/*.txt
+
+# Preserve report directory structure
+!reports/**/.gitkeep
+
+# Markdown reports may be intentionally committed as evidence
+!reports/**/*.md
+
+
+# ============================================================
+# AWS local files / credentials
+# ============================================================
+
+.aws/
+credentials
+aws_credentials
+
+
+# ============================================================
+# Azure local files / credentials
+# ============================================================
+
+.azure/
+azureProfile.json
+
+
+# ============================================================
+# Environment variables and secrets
+# ============================================================
+
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+*.pfx
+*.p12
+
+secrets/
+secret/
+*.secret
+
+
+# ============================================================
+# Python
+# ============================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.venv/
+venv/
+env/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+coverage.xml
+.coverage
+htmlcov/
+
+
+# ============================================================
+# Logs and temporary files
+# ============================================================
+
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+
+# ============================================================
+# IDE / Editor
+# ============================================================
+
+.vscode/
+.idea/
+
+
+# ============================================================
+# OS generated files
+# ============================================================
+
+.DS_Store
+Thumbs.db
+
+
+# ============================================================
+# Local CLI output / scratch files
+# ============================================================
+
+tmp/
+temp/
+.local/
+.cache/
