@@ -1,0 +1,49 @@
+name: Azure Remediation OIDC Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate-azure-remediation-oidc:
+    name: Validate Azure Remediation OIDC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Login to Azure remediation identity with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: 49c2dd42-7a23-4765-84a3-7eb604e07c96
+          tenant-id: 78591d21-16e0-46d0-8cbb-95fcc94db601
+          subscription-id: a72a48ad-a95c-4f18-8c17-556abbc0fa2d
+
+      - name: Verify Azure identity
+        run: |
+          az account show \
+            --query '{
+              Subscription:name,
+              SubscriptionId:id,
+              TenantId:tenantId,
+              User:user.name,
+              UserType:user.type
+            }' \
+            -o table
+
+      - name: Verify expected service principal
+        run: |
+          CURRENT_CLIENT_ID="$(az account show --query user.name -o tsv)"
+
+          echo "Authenticated client ID: $CURRENT_CLIENT_ID"
+
+          if [ "$CURRENT_CLIENT_ID" != "49c2dd42-7a23-4765-84a3-7eb604e07c96" ]; then
+            echo "ERROR - unexpected Azure remediation identity"
+            exit 1
+          fi
+
+          echo "PASS - authenticated through expected Azure remediation identity"
