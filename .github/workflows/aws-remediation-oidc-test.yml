@@ -1,0 +1,45 @@
+name: AWS Remediation OIDC Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate-remediation-oidc:
+    name: Validate AWS Remediation OIDC
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS remediation credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-remediation
+          role-session-name: mc-finops-remediation-oidc-test
+          aws-region: us-east-1
+          allowed-account-ids: 931058976119
+
+      - name: Verify remediation identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Verify expected assumed role
+        run: |
+          ARN="$(aws sts get-caller-identity --query Arn --output text)"
+
+          echo "Authenticated ARN: $ARN"
+
+          case "$ARN" in
+            arn:aws:sts::931058976119:assumed-role/mc-finops-github-aws-remediation/*)
+              echo "PASS - authenticated through expected remediation role"
+              ;;
+            *)
+              echo "ERROR - unexpected AWS identity: $ARN"
+              exit 1
+              ;;
+          esac
