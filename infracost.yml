@@ -1,0 +1,10 @@
+version: 0.1
+
+projects:
+  - path: terraform/aws/environments/dev
+    name: aws-dev
+    skip_autodetect: true
+
+  - path: terraform/azure/environments/dev
+    name: azure-dev
+    skip_autodetect: true
