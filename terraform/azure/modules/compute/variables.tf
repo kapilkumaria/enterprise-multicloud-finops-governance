@@ -26,7 +26,7 @@ variable "subnet_id" {
 variable "vm_size" {
   description = "Azure VM SKU used by the baseline workload."
   type        = string
-  default     = "Standard_B1s"
+  default     = "Standard_D2s_v3"
 }
 
 variable "admin_username" {

@@ -41,7 +41,7 @@ variable "subnet_address_prefixes" {
 variable "azure_vm_size" {
   description = "Azure VM SKU used for the baseline cost workload."
   type        = string
-  default     = "Standard_B1s"
+  default     = "Standard_D2s_v3"
 }
 
 variable "azure_admin_username" {

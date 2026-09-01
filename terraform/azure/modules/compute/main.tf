@@ -37,7 +37,7 @@ resource "azurerm_linux_virtual_machine" "this" {
   secure_boot_enabled = true
   vtpm_enabled        = true
 
-  encryption_at_host_enabled = true
+  encryption_at_host_enabled = false
 
   admin_ssh_key {
     username   = var.admin_username
