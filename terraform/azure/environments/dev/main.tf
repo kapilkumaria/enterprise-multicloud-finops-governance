@@ -33,3 +33,20 @@ module "compute" {
 
   tags = local.common_tags
 }
+
+module "budget" {
+  source = "../../modules/budget"
+
+  name              = "mc-finops-dev-monthly-budget"
+  resource_group_id = azurerm_resource_group.dev.id
+  monthly_limit     = var.azure_monthly_budget
+  start_date        = var.azure_budget_start_date
+
+  notification_threshold_percent = (
+    var.azure_budget_notification_threshold_percent
+  )
+
+  notification_contact_emails = (
+    var.azure_budget_notification_emails
+  )
+}

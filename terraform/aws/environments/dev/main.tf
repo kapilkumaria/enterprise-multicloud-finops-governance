@@ -26,3 +26,19 @@ module "compute" {
 
   tags = local.common_tags
 }
+
+module "budget" {
+  source = "../../modules/budget"
+
+  name              = "mc-finops-dev-monthly-budget"
+  monthly_limit_usd = var.aws_monthly_budget_usd
+  project_name      = local.project_name
+
+  notification_threshold_percent = (
+    var.aws_budget_notification_threshold_percent
+  )
+
+  notification_email_addresses = (
+    var.aws_budget_notification_emails
+  )
+}

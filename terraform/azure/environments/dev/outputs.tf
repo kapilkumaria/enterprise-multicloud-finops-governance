@@ -77,3 +77,18 @@ output "baseline_vm_managed_identity_principal_id" {
   description = "Principal ID of the Azure baseline VM managed identity."
   value       = module.compute.principal_id
 }
+
+output "azure_monthly_budget_id" {
+  description = "Azure Resource Group budget ID."
+  value       = module.budget.budget_id
+}
+
+output "azure_monthly_budget_name" {
+  description = "Azure monthly FinOps budget name."
+  value       = module.budget.budget_name
+}
+
+output "azure_monthly_budget" {
+  description = "Azure monthly FinOps budget threshold."
+  value       = module.budget.monthly_limit
+}

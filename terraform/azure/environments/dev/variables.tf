@@ -55,3 +55,44 @@ variable "azure_ssh_public_key" {
   type        = string
   sensitive   = true
 }
+
+variable "azure_monthly_budget" {
+  description = "Monthly Azure FinOps budget guardrail."
+  type        = number
+  default     = 100
+
+  validation {
+    condition     = var.azure_monthly_budget >= 80
+    error_message = "Azure monthly budget must be at least 80 for the current baseline."
+  }
+}
+
+variable "azure_budget_start_date" {
+  description = "Azure budget start date. Must be the first day of a month."
+  type        = string
+  default     = "2026-09-01T00:00:00Z"
+}
+
+variable "azure_budget_notification_threshold_percent" {
+  description = "Actual-cost percentage that triggers the Azure budget notification."
+  type        = number
+  default     = 80
+
+  validation {
+    condition = (
+      var.azure_budget_notification_threshold_percent > 0 &&
+      var.azure_budget_notification_threshold_percent <= 100
+    )
+
+    error_message = "Azure budget notification threshold must be between 1 and 100."
+  }
+}
+
+variable "azure_budget_notification_emails" {
+  description = "Email recipients for Azure monthly budget notifications."
+  type        = list(string)
+
+  default = [
+    "kapil.azure.lab@gmail.com"
+  ]
+}

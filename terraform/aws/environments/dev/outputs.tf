@@ -68,3 +68,13 @@ output "baseline_instance_ami_id" {
   value       = module.compute.ami_id
   sensitive   = true
 }
+
+output "aws_monthly_budget_name" {
+  description = "AWS monthly FinOps budget name."
+  value       = module.budget.budget_name
+}
+
+output "aws_monthly_budget_usd" {
+  description = "AWS monthly FinOps budget threshold in USD."
+  value       = module.budget.monthly_limit_usd
+}
