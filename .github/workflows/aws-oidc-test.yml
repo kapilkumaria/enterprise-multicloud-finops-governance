@@ -1,0 +1,40 @@
+name: AWS OIDC Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate-aws-oidc:
+    name: Validate GitHub OIDC to AWS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-deploy
+          role-session-name: mc-finops-oidc-test
+          aws-region: us-east-1
+          allowed-account-ids: 931058976119
+
+      - name: Verify AWS identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Verify expected AWS account
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+
+          if [ "$ACCOUNT_ID" != "931058976119" ]; then
+            echo "ERROR: Unexpected AWS account: $ACCOUNT_ID"
+            exit 1
+          fi
+
+          echo "PASS - authenticated to expected AWS account"
