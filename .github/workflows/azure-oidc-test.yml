@@ -1,0 +1,47 @@
+name: Azure OIDC Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate-azure-oidc:
+    name: Validate GitHub OIDC to Azure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Login to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: 489decfa-8409-4a78-a507-e02aa77ab521
+          tenant-id: 78591d21-16e0-46d0-8cbb-95fcc94db601
+          subscription-id: a72a48ad-a95c-4f18-8c17-556abbc0fa2d
+
+      - name: Verify Azure account
+        run: |
+          az account show \
+            --query '{
+              Name:name,
+              SubscriptionId:id,
+              TenantId:tenantId,
+              User:user.name,
+              UserType:user.type
+            }' \
+            -o table
+
+      - name: Verify expected subscription
+        run: |
+          SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+          if [ "$SUBSCRIPTION_ID" != "a72a48ad-a95c-4f18-8c17-556abbc0fa2d" ]; then
+            echo "ERROR - unexpected Azure subscription: $SUBSCRIPTION_ID"
+            exit 1
+          fi
+
+          echo "PASS - authenticated to expected Azure subscription"
