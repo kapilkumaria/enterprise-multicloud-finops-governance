@@ -240,6 +240,104 @@ jobs:
 
           echo "PASS - ${{ matrix.cloud }} mandatory-tag governance"
 
+  finops-policy:
+    name: FinOps Policy Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Infracost
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsSL \
+            https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh \
+            | sh
+
+          infracost --version
+
+      - name: Verify FinOps policy engine
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bash -n scripts/cost/check-cost-policy.sh
+          test -x scripts/cost/check-cost-policy.sh
+
+          echo "PASS - FinOps cost policy engine valid"
+
+      - name: AWS high-cost policy rejection
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          set +e
+
+          scripts/cost/check-cost-policy.sh \
+            examples/violations/aws-cost-threshold-exceeded
+
+          EXIT_CODE=$?
+
+          set -e
+
+          echo "AWS cost-policy exit code: $EXIT_CODE"
+
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            echo "PASS - AWS high-cost fixture correctly denied"
+          else
+            echo "FAIL - expected AWS policy DENY / exit 1"
+            exit 1
+          fi
+
+      - name: Azure high-cost policy rejection
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          set +e
+
+          scripts/cost/check-cost-policy.sh \
+            examples/violations/azure-cost-threshold-exceeded
+
+          EXIT_CODE=$?
+
+          set -e
+
+          echo "Azure cost-policy exit code: $EXIT_CODE"
+
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            echo "PASS - Azure high-cost fixture correctly denied"
+          else
+            echo "FAIL - expected Azure policy DENY / exit 1"
+            exit 1
+          fi
+
+      - name: Verify FinOps fail-closed behavior
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          set +e
+
+          scripts/cost/check-cost-policy.sh \
+            examples/violations/__invalid_finops_target__
+
+          EXIT_CODE=$?
+
+          set -e
+
+          echo "Invalid-target cost-policy exit code: $EXIT_CODE"
+
+          if [ "$EXIT_CODE" -eq 2 ]; then
+            echo "PASS - FinOps evaluation errors fail closed"
+          else
+            echo "FAIL - expected FinOps ERROR / exit 2"
+            exit 1
+          fi
+
   governance-result:
     name: PR Governance Gate
     runs-on: ubuntu-latest
@@ -248,6 +346,7 @@ jobs:
       - terraform-static
       - checkov
       - custom-governance
+      - finops-policy
 
     if: always()
 
@@ -261,17 +360,20 @@ jobs:
           TERRAFORM_STATIC="${{ needs.terraform-static.result }}"
           CHECKOV="${{ needs.checkov.result }}"
           CUSTOM_GOVERNANCE="${{ needs.custom-governance.result }}"
+          FINOPS_POLICY="${{ needs.finops-policy.result }}"
 
           echo "Repository safety: $REPOSITORY_SAFETY"
           echo "Terraform static:  $TERRAFORM_STATIC"
           echo "Checkov:            $CHECKOV"
           echo "Custom governance:  $CUSTOM_GOVERNANCE"
+          echo "FinOps policy:       $FINOPS_POLICY"
 
           if \
             [ "$REPOSITORY_SAFETY" = "success" ] \
             && [ "$TERRAFORM_STATIC" = "success" ] \
             && [ "$CHECKOV" = "success" ] \
-            && [ "$CUSTOM_GOVERNANCE" = "success" ]
+            && [ "$CUSTOM_GOVERNANCE" = "success" ] \
+            && [ "$FINOPS_POLICY" = "success" ]
           then
             echo
             echo "GOVERNANCE RESULT: ALLOW"
