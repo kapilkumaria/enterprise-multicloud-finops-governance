@@ -1,0 +1,325 @@
+name: Resolved Cost Governance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: resolved-cost-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aws-resolved-cost:
+    name: AWS Resolved Cost
+    runs-on: ubuntu-latest
+
+    env:
+      INFRACOST_CLI_AUTHENTICATION_TOKEN: ${{ secrets.INFRACOST_CLI_AUTHENTICATION_TOKEN }}
+      AWS_COST_THRESHOLD_USD: "25"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.6
+          terraform_wrapper: false
+
+      - name: Install Infracost
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsSL \
+            https://raw.githubusercontent.com/infracost/cli/master/scripts/install.sh \
+            | sh
+
+          INFRACOST_VERSION="$(infracost --version)"
+
+          echo "Installed Infracost: $INFRACOST_VERSION"
+
+          if ! printf '%s\n' "$INFRACOST_VERSION" \
+            | grep -qF 'infracost version 2.16.2'
+          then
+            echo "ERROR - unexpected Infracost version"
+            exit 1
+          fi
+
+          infracost scan --help >/dev/null
+          infracost inspect --help >/dev/null
+
+          echo "PASS - Infracost resolved-cost runtime available"
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-deploy
+          role-session-name: mc-finops-resolved-cost
+          aws-region: us-east-1
+          allowed-account-ids: 931058976119
+
+      - name: Verify AWS identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ACCOUNT_ID="$(
+            aws sts get-caller-identity \
+              --query Account \
+              --output text
+          )"
+
+          ARN="$(
+            aws sts get-caller-identity \
+              --query Arn \
+              --output text
+          )"
+
+          echo "AWS account: $ACCOUNT_ID"
+          echo "AWS identity: $ARN"
+
+          if [ "$ACCOUNT_ID" != "931058976119" ]; then
+            echo "ERROR - unexpected AWS account"
+            exit 1
+          fi
+
+          echo "PASS - expected AWS OIDC identity active"
+
+      - name: Verify FinOps policy engine
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bash -n scripts/cost/check-cost-policy.sh
+          test -x scripts/cost/check-cost-policy.sh
+
+          echo "PASS - FinOps policy engine valid"
+
+      - name: Initialize AWS Terraform backend
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          terraform \
+            -chdir=terraform/aws/environments/dev \
+            init \
+            -input=false
+
+          echo "PASS - AWS Terraform backend initialized"
+
+      - name: Evaluate AWS resolved cost
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/cost/check-cost-policy.sh \
+            terraform/aws/environments/dev
+
+          echo "PASS - AWS resolved cost satisfies governed threshold"
+
+
+  azure-resolved-cost:
+    name: Azure Resolved Cost
+    runs-on: ubuntu-latest
+
+    env:
+      INFRACOST_CLI_AUTHENTICATION_TOKEN: ${{ secrets.INFRACOST_CLI_AUTHENTICATION_TOKEN }}
+      AZURE_COST_THRESHOLD_USD: "100"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.6
+          terraform_wrapper: false
+
+      - name: Install Infracost
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsSL \
+            https://raw.githubusercontent.com/infracost/cli/master/scripts/install.sh \
+            | sh
+
+          INFRACOST_VERSION="$(infracost --version)"
+
+          echo "Installed Infracost: $INFRACOST_VERSION"
+
+          if ! printf '%s\n' "$INFRACOST_VERSION" \
+            | grep -qF 'infracost version 2.16.2'
+          then
+            echo "ERROR - unexpected Infracost version"
+            exit 1
+          fi
+
+          infracost scan --help >/dev/null
+          infracost inspect --help >/dev/null
+
+          echo "PASS - Infracost resolved-cost runtime available"
+
+      - name: Login to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: 489decfa-8409-4a78-a507-e02aa77ab521
+          tenant-id: 78591d21-16e0-46d0-8cbb-95fcc94db601
+          subscription-id: a72a48ad-a95c-4f18-8c17-556abbc0fa2d
+
+      - name: Verify Azure identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SUBSCRIPTION_ID="$(
+            az account show \
+              --query id \
+              -o tsv
+          )"
+
+          TENANT_ID="$(
+            az account show \
+              --query tenantId \
+              -o tsv
+          )"
+
+          echo "Azure subscription: $SUBSCRIPTION_ID"
+          echo "Azure tenant:       $TENANT_ID"
+
+          if [ "$SUBSCRIPTION_ID" != "a72a48ad-a95c-4f18-8c17-556abbc0fa2d" ]; then
+            echo "ERROR - unexpected Azure subscription"
+            exit 1
+          fi
+
+          if [ "$TENANT_ID" != "78591d21-16e0-46d0-8cbb-95fcc94db601" ]; then
+            echo "ERROR - unexpected Azure tenant"
+            exit 1
+          fi
+
+          echo "PASS - expected Azure OIDC identity active"
+
+      - name: Verify FinOps policy engine
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bash -n scripts/cost/check-cost-policy.sh
+          test -x scripts/cost/check-cost-policy.sh
+
+          echo "PASS - FinOps policy engine valid"
+
+      - name: Initialize Azure Terraform backend
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          terraform \
+            -chdir=terraform/azure/environments/dev \
+            init \
+            -input=false
+
+          echo "PASS - Azure Terraform backend initialized"
+
+      - name: Load managed Azure SSH public key from Terraform state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          STATE_JSON="$RUNNER_TEMP/mc-finops-azure-state.json"
+
+          terraform \
+            -chdir=terraform/azure/environments/dev \
+            show \
+            -json \
+            >"$STATE_JSON"
+
+          jq empty "$STATE_JSON"
+
+          CURRENT_KEY="$(
+            jq -r '
+              [
+                .values.root_module.resources[]?,
+                .values.root_module.child_modules[]?.resources[]?
+              ]
+              | map(
+                  select(
+                    .type == "azurerm_linux_virtual_machine"
+                  )
+                )
+              | .[0].values.admin_ssh_key[0].public_key // empty
+            ' "$STATE_JSON"
+          )"
+
+          if [ -z "$CURRENT_KEY" ]; then
+            echo "ERROR - current Azure VM SSH public key could not be read from Terraform state"
+            exit 1
+          fi
+
+          {
+            echo 'TF_VAR_azure_ssh_public_key<<MC_FINOPS_SSH_KEY'
+            printf '%s\n' "$CURRENT_KEY"
+            echo 'MC_FINOPS_SSH_KEY'
+          } >>"$GITHUB_ENV"
+
+          echo "Managed Azure SSH key fingerprint:"
+          printf '%s\n' "$CURRENT_KEY" \
+            | ssh-keygen -lf /dev/stdin
+
+          rm -f "$STATE_JSON"
+
+          echo "PASS - state-consistent Azure planning input loaded"
+
+      - name: Evaluate Azure resolved cost
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/cost/check-cost-policy.sh \
+            terraform/azure/environments/dev
+
+          echo "PASS - Azure resolved cost satisfies governed threshold"
+
+
+  resolved-cost-result:
+    name: Resolved Cost Gate
+    runs-on: ubuntu-latest
+
+    needs:
+      - aws-resolved-cost
+      - azure-resolved-cost
+
+    if: always()
+
+    steps:
+      - name: Evaluate resolved-cost governance
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AWS_RESULT="${{ needs.aws-resolved-cost.result }}"
+          AZURE_RESULT="${{ needs.azure-resolved-cost.result }}"
+
+          echo "AWS resolved cost:   $AWS_RESULT"
+          echo "Azure resolved cost: $AZURE_RESULT"
+
+          if \
+            [ "$AWS_RESULT" = "success" ] \
+            && [ "$AZURE_RESULT" = "success" ]
+          then
+            echo
+            echo "RESOLVED COST RESULT: ALLOW"
+            echo "Both cloud environments satisfy modeled-cost thresholds."
+            exit 0
+          fi
+
+          echo
+          echo "RESOLVED COST RESULT: DENY"
+          echo "One or more resolved-cost controls failed."
+          exit 1
