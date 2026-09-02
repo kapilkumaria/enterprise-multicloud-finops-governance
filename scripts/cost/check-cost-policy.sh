@@ -27,11 +27,6 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 
-if ! command -v terraform >/dev/null 2>&1; then
-  echo "ERROR - Terraform is not installed"
-  exit 2
-fi
-
 echo
 echo "===== FINOPS COST POLICY CHECK ====="
 echo
@@ -163,6 +158,14 @@ else
 
   echo
   echo "----- TERRAFORM PLAN-JSON COST EVALUATION -----"
+
+  if ! command -v terraform >/dev/null 2>&1; then
+    echo
+    echo "ERROR - Terraform is required for plan-json evaluation"
+    echo "POLICY RESULT: ERROR"
+    echo "Fail-closed: deployment must not proceed."
+    exit 2
+  fi
 
   PLAN_FILE="$TMP_BASE/cost.tfplan"
   PLAN_JSON="$TMP_BASE/cost-plan.json"
