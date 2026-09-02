@@ -254,10 +254,24 @@ jobs:
           set -euo pipefail
 
           curl -fsSL \
-            https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh \
+            https://raw.githubusercontent.com/infracost/cli/master/scripts/install.sh \
             | sh
 
-          infracost --version
+          INFRACOST_VERSION="$(infracost --version)"
+
+          echo "Installed Infracost: $INFRACOST_VERSION"
+
+          if ! printf '%s\n' "$INFRACOST_VERSION" \
+            | grep -qF 'infracost version 2.16.2'
+          then
+            echo "ERROR - unexpected Infracost version"
+            exit 1
+          fi
+
+          infracost scan --help >/dev/null
+          infracost inspect --help >/dev/null
+
+          echo "PASS - current Infracost scan/inspect CLI available"
 
       - name: Verify FinOps policy engine
         shell: bash
