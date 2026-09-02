@@ -29,3 +29,15 @@ provider "aws" {
     }
   }
 }
+
+###############################################################################
+# Adopted GitHub identity resources
+#
+# These IAM resources pre-date the bootstrap provider's expanded default-tag
+# policy. Keep their existing metadata stable during Terraform adoption.
+###############################################################################
+
+provider "aws" {
+  alias  = "github_identity"
+  region = var.aws_region
+}
