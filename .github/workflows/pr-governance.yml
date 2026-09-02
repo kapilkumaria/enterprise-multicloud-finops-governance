@@ -244,6 +244,9 @@ jobs:
     name: FinOps Policy Validation
     runs-on: ubuntu-latest
 
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
