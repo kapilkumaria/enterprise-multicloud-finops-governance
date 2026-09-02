@@ -207,6 +207,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.6
+          terraform_wrapper: false
+
+      - name: Verify Terraform runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          terraform version
+          command -v terraform
+
+          echo "PASS - Terraform runtime available to custom governance"
+
       - name: Verify policy scripts
         shell: bash
         run: |
