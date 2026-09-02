@@ -1,0 +1,285 @@
+name: PR Governance
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "terraform/**"
+      - "scripts/compliance/**"
+      - "scripts/cost/**"
+      - "examples/**"
+      - ".github/workflows/pr-governance.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-safety:
+    name: Repository Safety
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Verify forbidden Terraform artifacts are absent
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Checking repository for forbidden generated artifacts..."
+
+          FORBIDDEN="$(
+            find . \
+              -type f \
+              \( \
+                -name '*.tfstate' \
+                -o -name '*.tfstate.*' \
+                -o -name '*.tfplan' \
+                -o -name '*.pem' \
+                -o -name '*.key' \
+              \) \
+              -not -path './.git/*' \
+              -print
+          )"
+
+          if [ -n "$FORBIDDEN" ]; then
+            echo "ERROR - forbidden generated/sensitive artifacts detected:"
+            printf '%s\n' "$FORBIDDEN"
+            exit 1
+          fi
+
+          echo "PASS - no forbidden Terraform/state/key artifacts"
+
+      - name: Verify governance layer cannot apply infrastructure
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APPLY_REFS="$(
+            grep -RniE \
+              --exclude-dir=.terraform \
+              'terraform[[:space:]]+apply' \
+              scripts/compliance \
+              scripts/cost \
+              || true
+          )"
+
+          if [ -n "$APPLY_REFS" ]; then
+            echo "ERROR - deployment-capable Terraform command detected in governance layer:"
+            printf '%s\n' "$APPLY_REFS"
+            exit 1
+          fi
+
+          echo "PASS - governance layer is deployment-read-only"
+
+  terraform-static:
+    name: Terraform Static Validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cloud: AWS
+            directory: terraform/aws/environments/dev
+
+          - cloud: Azure
+            directory: terraform/azure/environments/dev
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.6
+          terraform_wrapper: false
+
+      - name: Terraform format check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Validating Terraform formatting for ${{ matrix.cloud }}..."
+
+          terraform fmt \
+            -check \
+            -recursive \
+            "${{ matrix.directory }}"
+
+          echo "PASS - ${{ matrix.cloud }} Terraform formatting clean"
+
+      - name: Terraform init without backend
+        shell: bash
+        working-directory: ${{ matrix.directory }}
+        run: |
+          set -euo pipefail
+
+          terraform init \
+            -backend=false \
+            -input=false
+
+          echo "PASS - ${{ matrix.cloud }} Terraform initialized without backend"
+
+      - name: Terraform validate
+        shell: bash
+        working-directory: ${{ matrix.directory }}
+        run: |
+          set -euo pipefail
+
+          terraform validate
+
+          echo "PASS - ${{ matrix.cloud }} Terraform configuration valid"
+
+  checkov:
+    name: Checkov Governance
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cloud: AWS
+            directory: terraform/aws/environments/dev
+
+          - cloud: Azure
+            directory: terraform/azure/environments/dev
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Checkov
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m pip install \
+            --disable-pip-version-check \
+            checkov==3.3.16
+
+          checkov --version
+
+      - name: Run Checkov
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Running Checkov against ${{ matrix.cloud }}..."
+
+          checkov \
+            -d "${{ matrix.directory }}" \
+            --framework terraform \
+            --compact \
+            --quiet
+
+          echo "PASS - ${{ matrix.cloud }} Checkov governance clean"
+
+  custom-governance:
+    name: Custom Governance
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cloud: AWS
+            directory: terraform/aws/environments/dev
+
+          - cloud: Azure
+            directory: terraform/azure/environments/dev
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Verify policy scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bash -n scripts/compliance/check-region-policy.sh
+          bash -n scripts/compliance/check-mandatory-tags.sh
+
+          test -x scripts/compliance/check-region-policy.sh
+          test -x scripts/compliance/check-mandatory-tags.sh
+
+          echo "PASS - custom governance engines valid"
+
+      - name: Region governance
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/compliance/check-region-policy.sh \
+            "${{ matrix.directory }}"
+
+          echo "PASS - ${{ matrix.cloud }} region governance"
+
+      - name: Mandatory-tag governance
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/compliance/check-mandatory-tags.sh \
+            "${{ matrix.directory }}"
+
+          echo "PASS - ${{ matrix.cloud }} mandatory-tag governance"
+
+  governance-result:
+    name: PR Governance Gate
+    runs-on: ubuntu-latest
+    needs:
+      - repository-safety
+      - terraform-static
+      - checkov
+      - custom-governance
+
+    if: always()
+
+    steps:
+      - name: Evaluate governance jobs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REPOSITORY_SAFETY="${{ needs.repository-safety.result }}"
+          TERRAFORM_STATIC="${{ needs.terraform-static.result }}"
+          CHECKOV="${{ needs.checkov.result }}"
+          CUSTOM_GOVERNANCE="${{ needs.custom-governance.result }}"
+
+          echo "Repository safety: $REPOSITORY_SAFETY"
+          echo "Terraform static:  $TERRAFORM_STATIC"
+          echo "Checkov:            $CHECKOV"
+          echo "Custom governance:  $CUSTOM_GOVERNANCE"
+
+          if \
+            [ "$REPOSITORY_SAFETY" = "success" ] \
+            && [ "$TERRAFORM_STATIC" = "success" ] \
+            && [ "$CHECKOV" = "success" ] \
+            && [ "$CUSTOM_GOVERNANCE" = "success" ]
+          then
+            echo
+            echo "GOVERNANCE RESULT: ALLOW"
+            echo "PR satisfies all active static governance controls."
+            exit 0
+          fi
+
+          echo
+          echo "GOVERNANCE RESULT: DENY"
+          echo "One or more required governance controls failed."
+          exit 1
