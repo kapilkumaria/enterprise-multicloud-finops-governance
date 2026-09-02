@@ -245,7 +245,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      INFRACOST_CLI_AUTHENTICATION_TOKEN: ${{ secrets.INFRACOST_CLI_AUTHENTICATION_TOKEN }}
 
     steps:
       - name: Checkout repository
