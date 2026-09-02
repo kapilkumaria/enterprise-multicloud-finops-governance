@@ -128,18 +128,14 @@ if [ -n "$AWS_PROVIDER_FILES" ]; then
             VAR_NAME="${REGION_EXPR#var.}"
 
             VARIABLE_VALUE="$(
-              printf '%s\n' "$REGION_EXPR" \
-              | terraform \
-                  -chdir="$TARGET" \
-                  console \
-                  2>/dev/null \
-              | tail -1 \
-              | sed -E 's/^"([^"]*)"$/\1/'
+              extract_terraform_variable_default \
+                "$VAR_NAME" \
+                "$TARGET/variables.tf" \
+                2>/dev/null \
+                || true
             )"
 
-            if [ -n "$VARIABLE_VALUE" ] \
-              && [ "$VARIABLE_VALUE" != "$REGION_EXPR" ]
-            then
+            if [ -n "$VARIABLE_VALUE" ]; then
 
               AWS_REGIONS="$AWS_REGIONS"$'\n'"variable:$VAR_NAME|$VARIABLE_VALUE"
 
