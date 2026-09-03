@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "Approved AWS region for the dev environment."
   type        = string
-  default     = "us-east-1"
+  default     = "us-west-2"
 
   validation {
     condition     = contains(["us-east-1"], var.aws_region)
