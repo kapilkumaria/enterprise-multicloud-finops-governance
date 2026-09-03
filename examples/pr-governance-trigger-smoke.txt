@@ -1,0 +1,9 @@
+Phase 9.6 pull-request governance smoke test.
+
+Purpose:
+- trigger PR Governance through examples/**
+- prove pull_request event integration
+- exercise static multi-cloud governance controls
+- avoid infrastructure mutation
+
+This temporary file will not be merged into main.
