@@ -117,10 +117,51 @@ jobs:
         run: |
           set -euo pipefail
 
+          mkdir -p reports/cost
+
+          export MC_FINOPS_EVIDENCE_FILE="reports/cost/aws-resolved-cost.json"
+
           scripts/cost/check-cost-policy.sh \
             terraform/aws/environments/dev
 
           echo "PASS - AWS resolved cost satisfies governed threshold"
+
+      - name: Validate AWS governance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EVIDENCE="reports/cost/aws-resolved-cost.json"
+
+          test -s "$EVIDENCE"
+          jq empty "$EVIDENCE"
+
+          jq -e '
+            .schema_version == "1.0"
+            and .control.control_id == "FINOPS-COST-001"
+            and .control.cloud == "AWS"
+            and .control.evaluation_mode == "plan-json"
+            and .cost.currency == "USD"
+            and .cost.threshold_monthly_cost == 25
+            and .policy.policy_result == "ALLOW"
+            and .policy.policy_exit_code == 0
+            and .execution.terraform_plan_used == true
+            and .execution.terraform_apply_used == false
+            and .execution.oidc_used == true
+            and .execution.authentication_type == "github-oidc"
+            and .decision.governance_result == "ALLOW"
+          ' "$EVIDENCE" >/dev/null
+
+          echo "PASS - AWS governance evidence validated"
+
+      - name: Upload AWS resolved-cost evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mc-finops-aws-resolved-cost-${{ github.run_id }}
+          path: reports/cost/aws-resolved-cost.json
+          if-no-files-found: warn
+          retention-days: 30
 
 
   azure-resolved-cost:
@@ -281,10 +322,51 @@ jobs:
         run: |
           set -euo pipefail
 
+          mkdir -p reports/cost
+
+          export MC_FINOPS_EVIDENCE_FILE="reports/cost/azure-resolved-cost.json"
+
           scripts/cost/check-cost-policy.sh \
             terraform/azure/environments/dev
 
           echo "PASS - Azure resolved cost satisfies governed threshold"
+
+      - name: Validate Azure governance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EVIDENCE="reports/cost/azure-resolved-cost.json"
+
+          test -s "$EVIDENCE"
+          jq empty "$EVIDENCE"
+
+          jq -e '
+            .schema_version == "1.0"
+            and .control.control_id == "FINOPS-COST-001"
+            and .control.cloud == "Azure"
+            and .control.evaluation_mode == "plan-json"
+            and .cost.currency == "USD"
+            and .cost.threshold_monthly_cost == 100
+            and .policy.policy_result == "ALLOW"
+            and .policy.policy_exit_code == 0
+            and .execution.terraform_plan_used == true
+            and .execution.terraform_apply_used == false
+            and .execution.oidc_used == true
+            and .execution.authentication_type == "github-oidc"
+            and .decision.governance_result == "ALLOW"
+          ' "$EVIDENCE" >/dev/null
+
+          echo "PASS - Azure governance evidence validated"
+
+      - name: Upload Azure resolved-cost evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mc-finops-azure-resolved-cost-${{ github.run_id }}
+          path: reports/cost/azure-resolved-cost.json
+          if-no-files-found: warn
+          retention-days: 30
 
 
   resolved-cost-result:
@@ -298,6 +380,149 @@ jobs:
     if: always()
 
     steps:
+      - name: Download resolved-cost evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mc-finops-*-resolved-cost-${{ github.run_id }}
+          path: reports/cost
+          merge-multiple: true
+
+      - name: Validate downloaded evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s reports/cost/aws-resolved-cost.json
+          test -s reports/cost/azure-resolved-cost.json
+
+          jq empty reports/cost/aws-resolved-cost.json
+          jq empty reports/cost/azure-resolved-cost.json
+
+          echo "PASS - per-cloud evidence downloaded"
+
+      - name: Build aggregate governance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p reports/compliance
+
+          AWS_EVIDENCE="reports/cost/aws-resolved-cost.json"
+          AZURE_EVIDENCE="reports/cost/azure-resolved-cost.json"
+          SUMMARY="reports/compliance/resolved-cost-summary.json"
+
+          jq -n \
+            --arg schema_version "1.0" \
+            --arg repository "${{ github.repository }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg workflow "${{ github.workflow }}" \
+            --arg workflow_run_id "${{ github.run_id }}" \
+            --arg event "${{ github.event_name }}" \
+            --arg aws_result "${{ needs.aws-resolved-cost.result }}" \
+            --arg azure_result "${{ needs.azure-resolved-cost.result }}" \
+            --slurpfile aws "$AWS_EVIDENCE" \
+            --slurpfile azure "$AZURE_EVIDENCE" '
+              {
+                schema_version: $schema_version,
+
+                metadata: {
+                  repository: $repository,
+                  commit_sha: $commit_sha,
+                  workflow: $workflow,
+                  workflow_run_id: $workflow_run_id,
+                  event: $event,
+                  environment: "dev"
+                },
+
+                controls: {
+                  aws: $aws[0],
+                  azure: $azure[0]
+                },
+
+                jobs: {
+                  aws_resolved_cost: $aws_result,
+                  azure_resolved_cost: $azure_result
+                },
+
+                decision: {
+                  governance_result:
+                    (
+                      if
+                        ($aws_result == "success")
+                        and ($azure_result == "success")
+                        and ($aws[0].decision.governance_result == "ALLOW")
+                        and ($azure[0].decision.governance_result == "ALLOW")
+                      then
+                        "ALLOW"
+                      else
+                        "DENY"
+                      end
+                    )
+                }
+              }
+            ' >"$SUMMARY"
+
+          jq empty "$SUMMARY"
+
+          echo "PASS - aggregate resolved-cost evidence created"
+
+      - name: Write GitHub governance summary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AWS="reports/cost/aws-resolved-cost.json"
+          AZURE="reports/cost/azure-resolved-cost.json"
+          SUMMARY="reports/compliance/resolved-cost-summary.json"
+
+          AWS_COST="$(jq -r '.cost.estimated_monthly_cost' "$AWS")"
+          AWS_THRESHOLD="$(jq -r '.cost.threshold_monthly_cost' "$AWS")"
+          AWS_RESULT="$(jq -r '.decision.governance_result' "$AWS")"
+
+          AZURE_COST="$(jq -r '.cost.estimated_monthly_cost' "$AZURE")"
+          AZURE_THRESHOLD="$(jq -r '.cost.threshold_monthly_cost' "$AZURE")"
+          AZURE_RESULT="$(jq -r '.decision.governance_result' "$AZURE")"
+
+          OVERALL="$(jq -r '.decision.governance_result' "$SUMMARY")"
+
+          {
+            echo "# Multi-Cloud FinOps Governance"
+            echo
+            echo "| Cloud | Estimated Monthly Cost | Threshold | Result |"
+            echo "| --- | ---: | ---: | --- |"
+            printf '| AWS | USD %.2f | USD %.2f | %s |\n' \
+              "$AWS_COST" "$AWS_THRESHOLD" "$AWS_RESULT"
+            printf '| Azure | USD %.2f | USD %.2f | %s |\n' \
+              "$AZURE_COST" "$AZURE_THRESHOLD" "$AZURE_RESULT"
+            echo
+            echo "## Execution Controls"
+            echo
+            echo "- GitHub OIDC used for AWS planning"
+            echo "- GitHub OIDC used for Azure planning"
+            echo "- Terraform plan used for both clouds"
+            echo "- Terraform apply prohibited"
+            echo "- Terraform destroy prohibited"
+            echo "- Automatic remediation not executed"
+            echo
+            echo "## Governance Result"
+            echo
+            echo "**$OVERALL**"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+          echo "PASS - GitHub Step Summary generated"
+
+      - name: Upload combined governance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mc-finops-governance-evidence-${{ github.run_id }}
+          path: |
+            reports/cost/aws-resolved-cost.json
+            reports/cost/azure-resolved-cost.json
+            reports/compliance/resolved-cost-summary.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Evaluate resolved-cost governance
         shell: bash
         run: |
