@@ -238,11 +238,7 @@ recommendation="$(
 
       decision: {
         result: $decision,
-        reason:
-          if $decision == "RECOMMEND"
-          then "Governance finding is non-compliant and matches an allow-listed low-risk remediation."
-          else "Finding is already compliant; no remediation is required."
-          end
+        reason: $decision_reason
       }
     }'
 )"
