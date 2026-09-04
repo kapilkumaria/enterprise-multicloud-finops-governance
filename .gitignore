@@ -63,6 +63,7 @@ reports/**/*.txt
 !reports/remediation/aws/execution-evidence.json
 !reports/remediation/azure/execution-evidence.json
 !reports/remediation/cross-cloud-remediation-summary.json
+!reports/remediation/deny-test-summary.json
 
 
 # ============================================================

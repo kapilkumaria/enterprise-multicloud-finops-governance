@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "control": {
+    "control_id": "TAG-001",
+    "governed_tag": "CostCenter",
+    "environment": "dev",
+    "security_model": "human-approved-fail-closed-controlled-remediation"
+  },
+  "approval_boundary": {
+    "tests_executed": 9,
+    "tests_passed": 9,
+    "tests_failed": 0,
+    "denied_requests_created_approval_evidence": false,
+    "result": "PASS",
+    "cases": [
+      "wrong-remediation-id",
+      "wrong-cloud",
+      "wrong-resource",
+      "unauthorized-action",
+      "unauthorized-tag-key",
+      "before-state-mismatch",
+      "tampered-desired-value",
+      "invalid-confirmation-token",
+      "missing-confirmation-token"
+    ]
+  },
+  "execution_boundary": {
+    "aws": {
+      "tests_executed": 13,
+      "tests_passed": 13,
+      "tests_failed": 0
+    },
+    "azure": {
+      "tests_executed": 13,
+      "tests_passed": 13,
+      "tests_failed": 0
+    },
+    "total_tests_executed": 26,
+    "total_tests_passed": 26,
+    "total_tests_failed": 0,
+    "cloud_cli_invocations": 0,
+    "denied_requests_created_execution_evidence": false,
+    "result": "PASS",
+    "cases": [
+      "unsupported-schema",
+      "wrong-remediation-id",
+      "wrong-cloud",
+      "wrong-environment",
+      "unauthorized-action",
+      "wrong-resource",
+      "unauthorized-tag-key",
+      "tampered-desired-value",
+      "approval-not-required",
+      "missing-human-approval",
+      "unverified-confirmation-token",
+      "execution-replay",
+      "invalid-lifecycle-state"
+    ]
+  },
+  "post_test_verification": {
+    "aws_authoritative_value_preserved": true,
+    "azure_authoritative_value_preserved": true,
+    "cloud_mutation_performed": false,
+    "terraform_mutation_performed": false,
+    "result": "PASS"
+  },
+  "overall_result": "PASS"
+}

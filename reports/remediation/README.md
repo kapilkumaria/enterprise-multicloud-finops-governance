@@ -69,3 +69,60 @@ The implementation proves that remediation is:
 
 Raw workflow artifacts are intentionally not committed. The JSON evidence in
 this directory is sanitized for portfolio publication.
+
+## Fail-Closed DENY Testing
+
+The remediation controls were also tested using deliberately invalid and
+tampered requests.
+
+### Approval Boundary
+
+Nine negative approval tests were executed covering:
+
+- incorrect remediation ID;
+- incorrect cloud;
+- incorrect resource;
+- unauthorized action;
+- unauthorized tag key;
+- before-state mismatch;
+- tampered desired value;
+- invalid confirmation token;
+- missing confirmation token.
+
+All 9 requests were denied.
+
+No denied request produced approval evidence and no cloud mutation occurred.
+
+### Execution Boundary
+
+The AWS and Azure executors were independently tested with 13 tampered
+approval-evidence cases per cloud, for a total of 26 negative executor tests.
+
+The cases covered:
+
+- unsupported schema;
+- incorrect remediation ID;
+- incorrect cloud;
+- incorrect environment;
+- unauthorized action;
+- incorrect resource;
+- unauthorized tag key;
+- tampered desired value;
+- invalid approval requirement state;
+- missing human approval;
+- unverified confirmation token;
+- execution replay;
+- invalid lifecycle state.
+
+All 26 executor tests were denied before the cloud-command boundary.
+
+A command tripwire verified that zero AWS CLI or Azure CLI commands were
+invoked by the denied executions. No execution evidence was produced for any
+denied request.
+
+After the tests, both governed cloud resources retained the Terraform
+authoritative `CostCenter=Engineering` value.
+
+DENY-test result: `PASS`
+
+See `deny-test-summary.json` for the normalized audit summary.
