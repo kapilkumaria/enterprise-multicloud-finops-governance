@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "control": {
+    "control_id": "TAG-001",
+    "tag_key": "CostCenter",
+    "remediation_model": "human-approved-controlled-remediation"
+  },
+  "security_model": {
+    "authentication": "github-oidc",
+    "static_cloud_credentials": false,
+    "dedicated_remediation_identities": true,
+    "human_approval_required": true,
+    "terraform_mutation_allowed": false,
+    "fail_closed": true
+  },
+  "aws": {
+    "remediation_id": "rem-finding-aws-live-tag-001",
+    "workflow_run_id": "33923881049",
+    "resource_type": "aws_instance",
+    "resource_name": "mc-finops-dev-baseline-instance",
+    "before": "Engineering",
+    "approved_value": "CC-PLATFORM",
+    "after": "CC-PLATFORM",
+    "approved": true,
+    "oidc_used": true,
+    "dedicated_identity": true,
+    "cloud_mutation": true,
+    "terraform_mutation": false,
+    "execution_result": "EXECUTED",
+    "verification_result": "PASS",
+    "terraform_drift_detected": true,
+    "terraform_reconciled": true,
+    "final_drift": "ZERO"
+  },
+  "azure": {
+    "remediation_id": "rem-finding-azure-live-tag-001",
+    "workflow_run_id": "33927869846",
+    "resource_type": "azurerm_linux_virtual_machine",
+    "resource_name": "mc-finops-dev-baseline-vm",
+    "before": "Engineering",
+    "approved_value": "CC-PLATFORM",
+    "after": "CC-PLATFORM",
+    "approved": true,
+    "oidc_used": true,
+    "dedicated_identity": true,
+    "cloud_mutation": true,
+    "terraform_mutation": false,
+    "execution_result": "EXECUTED",
+    "verification_result": "PASS",
+    "terraform_drift_detected": true,
+    "terraform_reconciled": true,
+    "final_drift": "ZERO"
+  },
+  "overall_result": "PASS"
+}

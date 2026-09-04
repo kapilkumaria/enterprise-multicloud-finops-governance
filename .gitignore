@@ -59,6 +59,11 @@ reports/**/*.txt
 # Markdown reports may be intentionally committed as evidence
 !reports/**/*.md
 
+# Curated sanitized remediation evidence may be committed
+!reports/remediation/aws/execution-evidence.json
+!reports/remediation/azure/execution-evidence.json
+!reports/remediation/cross-cloud-remediation-summary.json
+
 
 # ============================================================
 # AWS local files / credentials

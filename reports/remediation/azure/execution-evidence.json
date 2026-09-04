@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "metadata": {
+    "repository": "kapilkumaria/enterprise-multicloud-finops-governance",
+    "commit": "274a6a4432a44dcaf5b0c53b8c72b65dc7c69bd4",
+    "workflow": "Azure Controlled Remediation",
+    "workflow_run_id": "33927869846",
+    "event": "workflow_dispatch",
+    "environment": "dev",
+    "generated_at": "2026-09-04T23:01:25Z"
+  },
+  "remediation": {
+    "remediation_id": "rem-finding-azure-live-tag-001",
+    "cloud": "azure",
+    "control_id": "TAG-001",
+    "action_type": "set-tag",
+    "resource_type": "azurerm_linux_virtual_machine",
+    "resource_name": "mc-finops-dev-baseline-vm",
+    "tag_key": "CostCenter"
+  },
+  "before": {
+    "compliant": false,
+    "observed_value": "Engineering"
+  },
+  "recommendation": {
+    "desired_value": "CC-PLATFORM",
+    "recommended_action": "Set tag CostCenter to the approved value CC-PLATFORM.",
+    "risk_level": "low",
+    "requires_approval": true
+  },
+  "approval": {
+    "required": true,
+    "model": "workflow_dispatch-confirmation-token",
+    "approved": true,
+    "approved_at": "2026-09-04T23:01:25Z",
+    "approved_by": "kapilkumaria",
+    "confirmation_token_verified": true
+  },
+  "execution": {
+    "attempted": true,
+    "authentication_type": "github-oidc",
+    "oidc_used": true,
+    "dedicated_remediation_identity": true,
+    "command_class": "azure-tag-update",
+    "cloud_credentials_used": true,
+    "cloud_mutation_performed": true,
+    "terraform_mutation_performed": false,
+    "executed_at": "2026-09-04T23:01:52Z"
+  },
+  "after": {
+    "compliant": true,
+    "observed_value": "CC-PLATFORM"
+  },
+  "result": {
+    "remediation_result": "EXECUTED",
+    "verification_result": "PASS",
+    "reason": "Approved Azure CostCenter remediation executed and independently verified."
+  }
+}
