@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "mode": "controlled-remediation",
+  "automatic_self_healing": false,
+  "human_approval_required": true,
+  "terraform_mutation_allowed": false,
+  "supported_clouds": [
+    "aws",
+    "azure"
+  ],
+  "supported_actions": [
+    "set-tag"
+  ],
+  "supported_tag_keys": [
+    "Project",
+    "Environment",
+    "Owner",
+    "CostCenter",
+    "BusinessUnit",
+    "DataClassification"
+  ],
+  "risk_levels": {
+    "set-tag": "low"
+  },
+  "prohibited_actions": [
+    "terraform-apply",
+    "terraform-destroy",
+    "terraform-import",
+    "delete-resource",
+    "terminate-instance",
+    "resize-instance",
+    "resize-vm",
+    "delete-storage",
+    "modify-networking",
+    "grant-administrator"
+  ],
+  "requirements": {
+    "dedicated_remediation_identity": true,
+    "oidc_required": true,
+    "before_state_required": true,
+    "after_state_required": true,
+    "verification_required": true,
+    "audit_evidence_required": true,
+    "fail_closed": true
+  }
+}
