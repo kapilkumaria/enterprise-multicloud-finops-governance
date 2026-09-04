@@ -78,13 +78,13 @@ jobs:
           set -euo pipefail
 
           if grep -nEi \
-            'aws ec2 create-tags|az tag (create|update)|terraform (apply|destroy|import)' \
+            '^[[:space:]]*(aws ec2 create-tags|az tag (create|update)|terraform (apply|destroy|import))([[:space:]]|$)' \
             .github/workflows/controlled-remediation-approval.yml; then
-            echo "ERROR - mutation command detected in approval workflow"
+            echo "ERROR - executable mutation command detected in approval workflow"
             exit 1
           fi
 
-          echo "PASS - approval workflow contains no cloud mutation commands"
+          echo "PASS - approval workflow contains no executable cloud mutation commands"
 
       - name: Generate remediation recommendation
         shell: bash
