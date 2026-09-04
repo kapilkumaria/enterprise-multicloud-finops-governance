@@ -42,7 +42,11 @@ cloud="$(
 )"
 
 environment="$(
-  jq -r '.remediation.environment // empty' "$APPROVAL_EVIDENCE_FILE"
+  jq -r '
+    .remediation.environment
+    // .metadata.environment
+    // empty
+  ' "$APPROVAL_EVIDENCE_FILE"
 )"
 
 action_type="$(

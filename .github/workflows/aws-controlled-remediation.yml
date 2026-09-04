@@ -160,7 +160,7 @@ jobs:
           jq -e '
             .remediation.remediation_id == "rem-finding-aws-live-tag-001"
             and .remediation.cloud == "aws"
-            and .remediation.environment == "dev"
+            and ((.remediation.environment // .metadata.environment) == "dev")
             and .remediation.resource_identifier ==
               "arn:aws:ec2:us-east-1:931058976119:instance/i-033b19d090406151a"
             and .remediation.action_type == "set-tag"
