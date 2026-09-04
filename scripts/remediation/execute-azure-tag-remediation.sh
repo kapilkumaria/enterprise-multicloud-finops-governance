@@ -81,7 +81,12 @@ confirmation_verified="$(
 )"
 
 execution_attempted="$(
-  jq -r '.execution.attempted // true' "$APPROVAL_EVIDENCE_FILE"
+  jq -r '
+    if .execution.attempted == null
+    then true
+    else .execution.attempted
+    end
+  ' "$APPROVAL_EVIDENCE_FILE"
 )"
 
 lifecycle="$(
