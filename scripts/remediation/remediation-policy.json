@@ -42,5 +42,8 @@
     "verification_required": true,
     "audit_evidence_required": true,
     "fail_closed": true
-  }
+  },
+  "supported_controls": [
+    "TAG-001"
+  ]
 }

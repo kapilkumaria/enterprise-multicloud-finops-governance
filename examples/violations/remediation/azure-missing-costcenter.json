@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "finding_id": "finding-azure-tag-001",
+  "cloud": "azure",
+  "environment": "dev",
+  "control_id": "TAG-001",
+  "resource_type": "Microsoft.Compute/virtualMachines",
+  "resource_identifier": "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev/providers/Microsoft.Compute/virtualMachines/vm-remediation-fixture",
+  "compliant": false,
+  "tag_key": "CostCenter",
+  "observed_value": null,
+  "desired_value": "CC-PLATFORM"
+}
