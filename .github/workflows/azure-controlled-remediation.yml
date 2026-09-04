@@ -1,0 +1,264 @@
+name: Azure Controlled Remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      current_value:
+        description: Current CostCenter value expected on the governed Azure VM
+        required: true
+        default: Engineering
+        type: string
+
+      confirmation_token:
+        description: Exact remediation confirmation token
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-approval:
+    name: Validate Remediation Approval
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    env:
+      CURRENT_VALUE: ${{ inputs.current_value }}
+      CONFIRMATION_TOKEN: ${{ inputs.confirmation_token }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build live remediation finding
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p reports/remediation/runtime
+
+          jq -n \
+            --arg observed "$CURRENT_VALUE" \
+            '{
+              schema_version: "1.0",
+              finding_id: "finding-azure-live-tag-001",
+              cloud: "azure",
+              environment: "dev",
+              control_id: "TAG-001",
+              resource_type: "azurerm_linux_virtual_machine",
+              resource_identifier: "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm",
+              compliant: false,
+              tag_key: "CostCenter",
+              observed_value: $observed,
+              desired_value: "CC-PLATFORM"
+            }' \
+            > reports/remediation/runtime/live-finding.json
+
+      - name: Generate remediation recommendation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/generate-remediation-recommendation.sh \
+            reports/remediation/runtime/live-finding.json \
+            reports/remediation/runtime/recommendation.json
+
+      - name: Build pre-approval evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/build-remediation-evidence.sh \
+            reports/remediation/runtime/recommendation.json \
+            reports/remediation/runtime/preapproval-evidence.json
+
+      - name: Validate pre-approval evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/validate-remediation-evidence.sh \
+            reports/remediation/runtime/preapproval-evidence.json
+
+      - name: Validate human approval
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/validate-remediation-approval.sh \
+            reports/remediation/runtime/recommendation.json \
+            reports/remediation/runtime/preapproval-evidence.json \
+            'rem-finding-azure-live-tag-001' \
+            'azure' \
+            '/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm' \
+            'set-tag' \
+            'CostCenter' \
+            "$CURRENT_VALUE" \
+            'CC-PLATFORM' \
+            "$CONFIRMATION_TOKEN" \
+            reports/remediation/runtime/approval-evidence.json
+
+      - name: Verify approval boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -e '
+            .remediation.remediation_id == "rem-finding-azure-live-tag-001"
+            and .remediation.cloud == "azure"
+            and .remediation.resource_identifier ==
+              "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm"
+            and .remediation.action_type == "set-tag"
+            and .remediation.tag_key == "CostCenter"
+            and .before.observed_value == env.CURRENT_VALUE
+            and .recommendation.desired_value == "CC-PLATFORM"
+            and .approval.approved == true
+            and .approval.confirmation_token_verified == true
+            and .execution.attempted == false
+            and .execution.oidc_used == false
+            and .execution.dedicated_remediation_identity == false
+            and .after.observed_value == null
+            and .result.remediation_result == "APPROVED_PENDING_EXECUTION"
+          ' reports/remediation/runtime/approval-evidence.json >/dev/null
+
+          echo "AZURE REMEDIATION APPROVAL GATE: PASS"
+          echo "EXECUTION STATUS: NOT ATTEMPTED"
+          echo "AZURE AUTHENTICATION: NOT USED"
+
+      - name: Upload approved remediation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-approved-remediation
+          path: |
+            reports/remediation/runtime/live-finding.json
+            reports/remediation/runtime/recommendation.json
+            reports/remediation/runtime/preapproval-evidence.json
+            reports/remediation/runtime/approval-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+
+  execute-remediation:
+    name: Execute Approved Azure Remediation
+    needs: validate-approval
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download approved remediation evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: azure-approved-remediation
+          path: reports/remediation/runtime
+
+      - name: Validate execution input
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -e '
+            .remediation.remediation_id == "rem-finding-azure-live-tag-001"
+            and .remediation.cloud == "azure"
+            and ((.remediation.environment // .metadata.environment) == "dev")
+            and .remediation.resource_identifier ==
+              "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm"
+            and .remediation.action_type == "set-tag"
+            and .remediation.tag_key == "CostCenter"
+            and .recommendation.desired_value == "CC-PLATFORM"
+            and .approval.approved == true
+            and .approval.confirmation_token_verified == true
+            and .execution.attempted == false
+            and .result.remediation_result == "APPROVED_PENDING_EXECUTION"
+          ' reports/remediation/runtime/approval-evidence.json >/dev/null
+
+          echo "PASS - approved evidence transferred across execution boundary"
+
+      - name: Login with dedicated Azure remediation identity
+        uses: azure/login@v3
+        with:
+          client-id: '49c2dd42-7a23-4765-84a3-7eb604e07c96'
+          tenant-id: '78591d21-16e0-46d0-8cbb-95fcc94db601'
+          subscription-id: 'a72a48ad-a95c-4f18-8c17-556abbc0fa2d'
+
+      - name: Prove remediation identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ACCOUNT_JSON="$(
+            az account show \
+              --output json
+          )"
+
+          echo "$ACCOUNT_JSON" | jq '{
+            subscription: .id,
+            tenant: .tenantId,
+            identity_type: .user.type,
+            identity_name: .user.name
+          }'
+
+          jq -e '
+            .id == "a72a48ad-a95c-4f18-8c17-556abbc0fa2d"
+            and .tenantId == "78591d21-16e0-46d0-8cbb-95fcc94db601"
+            and .user.type == "servicePrincipal"
+            and .user.name == "49c2dd42-7a23-4765-84a3-7eb604e07c96"
+          ' <<<"$ACCOUNT_JSON" >/dev/null
+
+          echo "AZURE REMEDIATION OIDC RESULT: PASS"
+
+      - name: Execute approved CostCenter remediation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/execute-azure-tag-remediation.sh \
+            reports/remediation/runtime/approval-evidence.json \
+            reports/remediation/runtime/execution-evidence.json
+
+      - name: Verify final audit evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -e '
+            .remediation.remediation_id == "rem-finding-azure-live-tag-001"
+            and .remediation.cloud == "azure"
+            and .remediation.resource_identifier ==
+              "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm"
+            and .remediation.action_type == "set-tag"
+            and .remediation.tag_key == "CostCenter"
+            and .before.observed_value == "Engineering"
+            and .recommendation.desired_value == "CC-PLATFORM"
+            and .approval.approved == true
+            and .approval.confirmation_token_verified == true
+            and .execution.attempted == true
+            and .execution.authentication_type == "github-oidc"
+            and .execution.oidc_used == true
+            and .execution.cloud_credentials_used == true
+            and .execution.cloud_mutation_performed == true
+            and .execution.terraform_mutation_performed == false
+            and .execution.dedicated_remediation_identity == true
+            and .after.compliant == true
+            and .after.observed_value == "CC-PLATFORM"
+            and .result.remediation_result == "EXECUTED"
+            and .result.verification_result == "PASS"
+          ' reports/remediation/runtime/execution-evidence.json >/dev/null
+
+          echo "AZURE CONTROLLED REMEDIATION RESULT: PASS"
+          echo "AZURE REMEDIATION VERIFICATION RESULT: PASS"
+
+      - name: Upload execution evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-remediation-execution-evidence
+          path: reports/remediation/runtime/execution-evidence.json
+          if-no-files-found: error
+          retention-days: 14
