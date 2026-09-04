@@ -22,3 +22,13 @@ output "terraform_state_location" {
   description = "Azure region containing the Terraform state backend."
   value       = var.azure_location
 }
+
+output "github_remediation_client_id" {
+  description = "Client ID for the GitHub Actions Azure controlled-remediation application."
+  value       = azuread_application.github_remediation.client_id
+}
+
+output "github_remediation_service_principal_object_id" {
+  description = "Object ID for the GitHub Actions Azure controlled-remediation service principal."
+  value       = azuread_service_principal.github_remediation.object_id
+}

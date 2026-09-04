@@ -12,6 +12,12 @@ jobs:
     name: Validate Azure Remediation OIDC
     runs-on: ubuntu-latest
 
+    env:
+      AZURE_CLIENT_ID: 49c2dd42-7a23-4765-84a3-7eb604e07c96
+      AZURE_TENANT_ID: 78591d21-16e0-46d0-8cbb-95fcc94db601
+      AZURE_SUBSCRIPTION_ID: a72a48ad-a95c-4f18-8c17-556abbc0fa2d
+      GOVERNED_VM_ID: /subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -19,29 +25,26 @@ jobs:
       - name: Login to Azure remediation identity with OIDC
         uses: azure/login@v3
         with:
-          client-id: 49c2dd42-7a23-4765-84a3-7eb604e07c96
-          tenant-id: 78591d21-16e0-46d0-8cbb-95fcc94db601
-          allow-no-subscriptions: true
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify tenant-level Azure identity
+      - name: Verify Azure remediation identity
+        shell: bash
         run: |
-          az account show \
-            --query '{
-              TenantId:tenantId,
-              User:user.name,
-              UserType:user.type
-            }' \
-            -o table
+          set -euo pipefail
 
-      - name: Verify expected remediation service principal
-        run: |
           CURRENT_CLIENT_ID="$(az account show --query user.name -o tsv)"
           CURRENT_USER_TYPE="$(az account show --query user.type -o tsv)"
+          CURRENT_TENANT_ID="$(az account show --query tenantId -o tsv)"
+          CURRENT_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
 
-          echo "Authenticated client ID: $CURRENT_CLIENT_ID"
-          echo "Authenticated user type: $CURRENT_USER_TYPE"
+          echo "Authenticated client ID:  $CURRENT_CLIENT_ID"
+          echo "Authenticated user type:  $CURRENT_USER_TYPE"
+          echo "Tenant ID:                $CURRENT_TENANT_ID"
+          echo "Subscription ID:          $CURRENT_SUBSCRIPTION_ID"
 
-          if [ "$CURRENT_CLIENT_ID" != "49c2dd42-7a23-4765-84a3-7eb604e07c96" ]; then
+          if [ "$CURRENT_CLIENT_ID" != "$AZURE_CLIENT_ID" ]; then
             echo "ERROR - unexpected Azure remediation identity"
             exit 1
           fi
@@ -51,4 +54,95 @@ jobs:
             exit 1
           fi
 
-          echo "PASS - authenticated through expected Azure remediation identity"
+          if [ "$CURRENT_TENANT_ID" != "$AZURE_TENANT_ID" ]; then
+            echo "ERROR - unexpected Azure tenant"
+            exit 1
+          fi
+
+          if [ "$CURRENT_SUBSCRIPTION_ID" != "$AZURE_SUBSCRIPTION_ID" ]; then
+            echo "ERROR - unexpected Azure subscription"
+            exit 1
+          fi
+
+          echo "AZURE REMEDIATION OIDC RESULT: PASS"
+
+      - name: Verify read access to governed VM
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VM_NAME="$(
+            az resource show \
+              --ids "$GOVERNED_VM_ID" \
+              --query name \
+              -o tsv
+          )"
+
+          VM_LOCATION="$(
+            az resource show \
+              --ids "$GOVERNED_VM_ID" \
+              --query location \
+              -o tsv
+          )"
+
+          echo "Governed VM:       $VM_NAME"
+          echo "Governed location: $VM_LOCATION"
+
+          if [ "$VM_NAME" != "mc-finops-dev-baseline-vm" ]; then
+            echo "ERROR - unexpected governed VM"
+            exit 1
+          fi
+
+          if [ "$VM_LOCATION" != "canadacentral" ]; then
+            echo "ERROR - unexpected Azure region"
+            exit 1
+          fi
+
+          echo "AZURE REMEDIATION READ RESULT: PASS"
+
+      - name: Verify governed resource tags
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROJECT="$(
+            az resource show \
+              --ids "$GOVERNED_VM_ID" \
+              --query 'tags.Project' \
+              -o tsv
+          )"
+
+          ENVIRONMENT="$(
+            az resource show \
+              --ids "$GOVERNED_VM_ID" \
+              --query 'tags.Environment' \
+              -o tsv
+          )"
+
+          COST_CENTER="$(
+            az resource show \
+              --ids "$GOVERNED_VM_ID" \
+              --query 'tags.CostCenter' \
+              -o tsv
+          )"
+
+          echo "Project=$PROJECT"
+          echo "Environment=$ENVIRONMENT"
+          echo "CostCenter=$COST_CENTER"
+
+          if [ "$PROJECT" != "enterprise-multicloud-finops-governance" ]; then
+            echo "ERROR - unexpected Project tag"
+            exit 1
+          fi
+
+          if [ "$ENVIRONMENT" != "dev" ]; then
+            echo "ERROR - unexpected Environment tag"
+            exit 1
+          fi
+
+          if [ "$COST_CENTER" != "Engineering" ]; then
+            echo "ERROR - unexpected CostCenter tag"
+            exit 1
+          fi
+
+          echo "AZURE REMEDIATION TAG READ RESULT: PASS"
