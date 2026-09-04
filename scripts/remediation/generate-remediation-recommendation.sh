@@ -167,9 +167,11 @@ remediation_id="rem-${finding_id}"
 if [[ "$compliant" == "true" ]]; then
   decision="NO_ACTION"
   recommended_action="No remediation required because the finding is already compliant."
+  decision_reason="Finding is already compliant; no remediation is required."
 else
   decision="RECOMMEND"
   recommended_action="Set tag ${tag_key} to the approved value ${desired_value}."
+  decision_reason="Governance finding is non-compliant and matches an allow-listed low-risk remediation."
 fi
 
 recommendation="$(
@@ -190,6 +192,7 @@ recommendation="$(
     --arg risk_level "$risk_level" \
     --arg recommended_action "$recommended_action" \
     --arg decision "$decision" \
+    --arg decision_reason "$decision_reason" \
     --argjson finding_compliant "$compliant" \
     --argjson requires_approval "$approval_required" \
     '{
