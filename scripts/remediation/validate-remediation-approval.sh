@@ -70,7 +70,10 @@ tag_key="$(
 )"
 
 observed_value="$(
-  jq -c '.before.observed_value' "$RECOMMENDATION_FILE"
+  jq -r '
+    .before.observed_value
+    | if . == null then "null" else tostring end
+  ' "$RECOMMENDATION_FILE"
 )"
 
 desired_value="$(
