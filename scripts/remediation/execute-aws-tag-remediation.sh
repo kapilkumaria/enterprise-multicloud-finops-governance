@@ -103,6 +103,15 @@ lifecycle_result="$(
 [[ "$tag_key" == "CostCenter" ]] \
   || error "only CostCenter remediation is allowed"
 
+[[ "$remediation_id" == "rem-finding-aws-live-tag-001" ]] \
+  || error "unexpected remediation ID"
+
+[[ "$resource_identifier" == "arn:aws:ec2:us-east-1:931058976119:instance/i-033b19d090406151a" ]] \
+  || error "resource is outside the approved controlled-remediation target"
+
+[[ "$desired_value" == "CC-PLATFORM" ]] \
+  || error "desired CostCenter value is not allow-listed"
+
 [[ "$approval_required" == "true" ]] \
   || error "human approval is required"
 
