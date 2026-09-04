@@ -1,0 +1,172 @@
+name: Controlled Remediation Approval
+
+on:
+  workflow_dispatch:
+    inputs:
+      finding_file:
+        description: "Path to remediation finding JSON"
+        required: true
+        default: "examples/violations/remediation/aws-missing-costcenter.json"
+        type: string
+
+      remediation_id:
+        description: "Expected remediation ID"
+        required: true
+        default: "rem-finding-aws-tag-001"
+        type: string
+
+      cloud:
+        description: "Cloud provider"
+        required: true
+        default: "aws"
+        type: choice
+        options:
+          - aws
+          - azure
+
+      resource_identifier:
+        description: "Exact governed resource identifier"
+        required: true
+        type: string
+
+      action_type:
+        description: "Approved remediation action"
+        required: true
+        default: "set-tag"
+        type: choice
+        options:
+          - set-tag
+
+      tag_key:
+        description: "Approved tag key"
+        required: true
+        default: "CostCenter"
+        type: string
+
+      current_value:
+        description: "Observed current value; use literal null when absent"
+        required: true
+        default: "null"
+        type: string
+
+      desired_value:
+        description: "Approved desired value"
+        required: true
+        default: "CC-PLATFORM"
+        type: string
+
+      confirmation_token:
+        description: "Must equal APPROVE:<remediation_id>"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  approve-remediation:
+    name: Validate Controlled Remediation Approval
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate workflow is non-mutating
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -nEi \
+            'aws ec2 create-tags|az tag (create|update)|terraform (apply|destroy|import)' \
+            .github/workflows/controlled-remediation-approval.yml; then
+            echo "ERROR - mutation command detected in approval workflow"
+            exit 1
+          fi
+
+          echo "PASS - approval workflow contains no cloud mutation commands"
+
+      - name: Generate remediation recommendation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p reports/remediation/runtime
+
+          scripts/remediation/generate-remediation-recommendation.sh \
+            "${{ inputs.finding_file }}" \
+            reports/remediation/runtime/recommendation.json
+
+      - name: Build pre-approval evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/build-remediation-evidence.sh \
+            reports/remediation/runtime/recommendation.json \
+            reports/remediation/runtime/preapproval-evidence.json
+
+      - name: Validate pre-approval evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/validate-remediation-evidence.sh \
+            reports/remediation/runtime/preapproval-evidence.json
+
+      - name: Validate human approval request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scripts/remediation/validate-remediation-approval.sh \
+            reports/remediation/runtime/recommendation.json \
+            reports/remediation/runtime/preapproval-evidence.json \
+            "${{ inputs.remediation_id }}" \
+            "${{ inputs.cloud }}" \
+            "${{ inputs.resource_identifier }}" \
+            "${{ inputs.action_type }}" \
+            "${{ inputs.tag_key }}" \
+            "${{ inputs.current_value }}" \
+            "${{ inputs.desired_value }}" \
+            "${{ inputs.confirmation_token }}" \
+            reports/remediation/runtime/approval-evidence.json
+
+      - name: Verify approved lifecycle remains non-executing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FILE="reports/remediation/runtime/approval-evidence.json"
+
+          jq -e '
+            .approval.approved == true
+            and
+            .execution.attempted == false
+            and
+            .execution.oidc_used == false
+            and
+            .execution.dedicated_remediation_identity == false
+            and
+            .after.compliant == null
+            and
+            .after.observed_value == null
+            and
+            .result.remediation_result == "APPROVED_PENDING_EXECUTION"
+            and
+            .result.verification_result == "NOT_ATTEMPTED"
+          ' "$FILE" >/dev/null
+
+          echo "CONTROLLED REMEDIATION APPROVAL RESULT: PASS"
+          echo "EXECUTION STATUS: NOT ATTEMPTED"
+          echo "CLOUD AUTHENTICATION: NOT USED"
+
+      - name: Upload remediation approval evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-remediation-approval-${{ github.run_id }}
+          path: |
+            reports/remediation/runtime/recommendation.json
+            reports/remediation/runtime/preapproval-evidence.json
+            reports/remediation/runtime/approval-evidence.json
+          if-no-files-found: error
