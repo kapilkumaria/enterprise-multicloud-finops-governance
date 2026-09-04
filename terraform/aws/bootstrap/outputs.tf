@@ -32,3 +32,13 @@ output "github_deploy_role_arn" {
   description = "AWS IAM role ARN assumed by GitHub Actions."
   value       = aws_iam_role.github_deploy.arn
 }
+
+output "github_remediation_role_name" {
+  description = "GitHub Actions controlled-remediation IAM role name"
+  value       = aws_iam_role.github_remediation.name
+}
+
+output "github_remediation_role_arn" {
+  description = "GitHub Actions controlled-remediation IAM role ARN"
+  value       = aws_iam_role.github_remediation.arn
+}

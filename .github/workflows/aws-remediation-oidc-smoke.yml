@@ -1,0 +1,70 @@
+name: AWS Remediation OIDC Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  aws-remediation-identity:
+    name: AWS Remediation Identity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS remediation credentials
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-remediation
+          aws-region: us-east-1
+
+      - name: Verify dedicated remediation identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IDENTITY="$(aws sts get-caller-identity)"
+          echo "$IDENTITY" | jq .
+
+          ARN="$(echo "$IDENTITY" | jq -r '.Arn')"
+
+          if [[ "$ARN" != *"mc-finops-github-aws-remediation"* ]]; then
+            echo "ERROR - unexpected AWS identity: $ARN"
+            exit 1
+          fi
+
+          echo
+          echo "AWS REMEDIATION OIDC RESULT: PASS"
+
+      - name: Verify governed EC2 read access
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RESULT="$(
+            aws ec2 describe-instances \
+              --region us-east-1 \
+              --filters \
+                "Name=tag:Project,Values=enterprise-multicloud-finops-governance" \
+                "Name=tag:Environment,Values=dev" \
+              --query 'Reservations[].Instances[].{
+                InstanceId:InstanceId,
+                State:State.Name,
+                Name:Tags[?Key==`Name`]|[0].Value,
+                CostCenter:Tags[?Key==`CostCenter`]|[0].Value
+              }' \
+              --output json
+          )"
+
+          echo "$RESULT" | jq .
+
+          COUNT="$(echo "$RESULT" | jq 'length')"
+
+          if [[ "$COUNT" -lt 1 ]]; then
+            echo "ERROR - no governed AWS EC2 resource found"
+            exit 1
+          fi
+
+          echo
+          echo "AWS REMEDIATION READ RESULT: PASS"
