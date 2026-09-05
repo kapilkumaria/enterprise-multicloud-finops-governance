@@ -1,0 +1,30 @@
+{
+  "project": "enterprise-multicloud-finops-governance",
+  "report_type": "modeled_monthly_cost_baseline",
+  "description": "Pre-deployment infrastructure cost estimates used as the FinOps planning baseline. These values are modeled estimates and are intentionally separate from live cloud billing data.",
+  "clouds": {
+    "aws": {
+      "currency": "USD",
+      "estimated_monthly_cost": 11,
+      "primary_cost_driver": {
+        "resource": "aws_instance",
+        "sku": "t3.micro"
+      },
+      "source": "Infracost pre-deployment estimate"
+    },
+    "azure": {
+      "currency": "USD",
+      "estimated_monthly_cost": 72,
+      "primary_cost_driver": {
+        "resource": "azurerm_linux_virtual_machine",
+        "sku": "Standard_D2s_v3"
+      },
+      "source": "Infracost configuration estimate"
+    }
+  },
+  "interpretation": {
+    "modeled_cost": "Expected infrastructure cost based on configuration and pricing assumptions.",
+    "actual_cost": "Cloud-provider billing data after usage has been processed and posted.",
+    "billing_lag": "Newly deployed resources may initially report zero actual cost even while they are actively running."
+  }
+}

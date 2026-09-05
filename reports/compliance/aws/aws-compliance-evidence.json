@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-09-02T19:36:33Z",
+  "project": "enterprise-multicloud-finops-governance",
+  "cloud": "AWS",
+  "expected_region": "us-east-1",
+  "summary": {
+    "total_controls": 15,
+    "passed": 15,
+    "failed": 0,
+    "compliant": true
+  },
+  "controls": [
+    {
+      "id": "AWS-REGION-001",
+      "description": "AWS resources must operate in the approved region",
+      "status": "PASS",
+      "actual": "us-east-1",
+      "expected": "us-east-1"
+    },
+    {
+      "id": "AWS-EC2-001",
+      "description": "Baseline EC2 instance must not have a public IPv4 address",
+      "status": "PASS",
+      "actual": "none",
+      "expected": "none"
+    },
+    {
+      "id": "AWS-EC2-002",
+      "description": "EC2 Instance Metadata Service must require IMDSv2",
+      "status": "PASS",
+      "actual": "required",
+      "expected": "required"
+    },
+    {
+      "id": "AWS-EC2-003",
+      "description": "Detailed EC2 monitoring must be enabled",
+      "status": "PASS",
+      "actual": "enabled",
+      "expected": "enabled"
+    },
+    {
+      "id": "AWS-SUBNET-001",
+      "description": "Subnet must not auto-assign public IPv4 addresses",
+      "status": "PASS",
+      "actual": false,
+      "expected": false
+    },
+    {
+      "id": "AWS-SG-001",
+      "description": "Baseline compute security group must have no ingress rules",
+      "status": "PASS",
+      "actual": 0,
+      "expected": 0
+    },
+    {
+      "id": "AWS-SG-002",
+      "description": "Baseline compute security group must have no egress rules",
+      "status": "PASS",
+      "actual": 0,
+      "expected": 0
+    },
+    {
+      "id": "AWS-LOG-001",
+      "description": "VPC Flow Logs must be active",
+      "status": "PASS",
+      "actual": "ACTIVE",
+      "expected": "ACTIVE"
+    },
+    {
+      "id": "AWS-LOG-002",
+      "description": "CloudWatch VPC Flow Log retention must be at least 365 days",
+      "status": "PASS",
+      "actual": 365,
+      "expected": 365
+    },
+    {
+      "id": "AWS-LOG-003",
+      "description": "CloudWatch VPC Flow Log group must use KMS encryption",
+      "status": "PASS",
+      "actual": "KMS key ARN (sanitized)",
+      "expected": "KMS key ARN"
+    },
+    {
+      "id": "AWS-TAG-001",
+      "description": "Project governance tag must match the project",
+      "status": "PASS",
+      "actual": "enterprise-multicloud-finops-governance",
+      "expected": "enterprise-multicloud-finops-governance"
+    },
+    {
+      "id": "AWS-TAG-002",
+      "description": "Environment governance tag must be dev",
+      "status": "PASS",
+      "actual": "dev",
+      "expected": "dev"
+    },
+    {
+      "id": "AWS-TAG-003",
+      "description": "ManagedBy governance tag must identify Terraform",
+      "status": "PASS",
+      "actual": "Terraform",
+      "expected": "Terraform"
+    },
+    {
+      "id": "AWS-BUDGET-001",
+      "description": "Native AWS monthly budget must exist",
+      "status": "PASS",
+      "actual": "mc-finops-dev-monthly-budget",
+      "expected": "mc-finops-dev-monthly-budget"
+    },
+    {
+      "id": "AWS-BUDGET-002",
+      "description": "AWS monthly budget must be USD 25",
+      "status": "PASS",
+      "actual": 25.0,
+      "expected": 25
+    }
+  ]
+}

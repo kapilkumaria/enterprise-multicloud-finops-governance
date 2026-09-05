@@ -1,0 +1,10 @@
+{
+  "cloud": "AWS",
+  "currency": "USD",
+  "period_start": "2026-09-01",
+  "period_end": "2026-09-02",
+  "estimated": true,
+  "unblended_cost": 0,
+  "amortized_cost": 0,
+  "services": []
+}

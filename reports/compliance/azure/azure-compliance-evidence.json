@@ -1,0 +1,140 @@
+{
+  "generated_at": "2026-09-02T19:34:20Z",
+  "project": "enterprise-multicloud-finops-governance",
+  "cloud": "Azure",
+  "expected_region": "canadacentral",
+  "summary": {
+    "total_controls": 18,
+    "passed": 18,
+    "failed": 0,
+    "compliant": true
+  },
+  "controls": [
+    {
+      "id": "AZURE-REGION-001",
+      "description": "Azure resources must operate in the approved region",
+      "status": "PASS",
+      "actual": "canadacentral",
+      "expected": "canadacentral"
+    },
+    {
+      "id": "AZURE-VM-001",
+      "description": "Baseline Azure VM must not have a public IP address",
+      "status": "PASS",
+      "actual": "none",
+      "expected": "none"
+    },
+    {
+      "id": "AZURE-VM-002",
+      "description": "Baseline Azure VM must use the approved SKU",
+      "status": "PASS",
+      "actual": "Standard_D2s_v3",
+      "expected": "Standard_D2s_v3"
+    },
+    {
+      "id": "AZURE-VM-003",
+      "description": "Azure VM Secure Boot must be enabled",
+      "status": "PASS",
+      "actual": "true",
+      "expected": "true"
+    },
+    {
+      "id": "AZURE-VM-004",
+      "description": "Azure VM vTPM must be enabled",
+      "status": "PASS",
+      "actual": "true",
+      "expected": "true"
+    },
+    {
+      "id": "AZURE-VM-005",
+      "description": "Azure VM must use a system-assigned managed identity",
+      "status": "PASS",
+      "actual": "SystemAssigned",
+      "expected": "SystemAssigned"
+    },
+    {
+      "id": "AZURE-NIC-001",
+      "description": "Azure NIC IP forwarding must be disabled",
+      "status": "PASS",
+      "actual": "false",
+      "expected": "false"
+    },
+    {
+      "id": "AZURE-NIC-002",
+      "description": "Azure NIC must not reference a Public IP resource",
+      "status": "PASS",
+      "actual": "0",
+      "expected": "0"
+    },
+    {
+      "id": "AZURE-NSG-001",
+      "description": "Baseline Azure NSG must not contain custom exposure rules",
+      "status": "PASS",
+      "actual": "0",
+      "expected": "0"
+    },
+    {
+      "id": "AZURE-NSG-002",
+      "description": "Baseline Azure NSG must not contain custom outbound allow rules",
+      "status": "PASS",
+      "actual": "0",
+      "expected": "0"
+    },
+    {
+      "id": "AZURE-SUBNET-001",
+      "description": "Azure subnet default outbound access must be disabled",
+      "status": "PASS",
+      "actual": "false",
+      "expected": "false"
+    },
+    {
+      "id": "AZURE-SUBNET-002",
+      "description": "Azure subnet must be associated with the governed compute NSG",
+      "status": "PASS",
+      "actual": "mc-finops-dev-compute-nsg",
+      "expected": "mc-finops-dev-compute-nsg"
+    },
+    {
+      "id": "AZURE-TAG-001",
+      "description": "Project governance tag must match the project",
+      "status": "PASS",
+      "actual": "enterprise-multicloud-finops-governance",
+      "expected": "enterprise-multicloud-finops-governance"
+    },
+    {
+      "id": "AZURE-TAG-002",
+      "description": "Environment governance tag must be dev",
+      "status": "PASS",
+      "actual": "dev",
+      "expected": "dev"
+    },
+    {
+      "id": "AZURE-TAG-003",
+      "description": "ManagedBy governance tag must identify Terraform",
+      "status": "PASS",
+      "actual": "Terraform",
+      "expected": "Terraform"
+    },
+    {
+      "id": "AZURE-BUDGET-001",
+      "description": "Native Azure monthly budget must exist",
+      "status": "PASS",
+      "actual": "mc-finops-dev-monthly-budget",
+      "expected": "mc-finops-dev-monthly-budget"
+    },
+    {
+      "id": "AZURE-BUDGET-002",
+      "description": "Azure monthly budget must match the governed amount",
+      "status": "PASS",
+      "actual": "100.0",
+      "expected": "100"
+    },
+    {
+      "id": "AZURE-BUDGET-003",
+      "description": "Azure budget must contain an enabled 80 percent actual-cost notification",
+      "status": "PASS",
+      "actual": "1",
+      "expected": "1"
+    }
+  ]
+}

@@ -158,3 +158,13 @@ tmp/
 temp/
 .local/
 .cache/
+
+# Curated sanitized FinOps and compliance evidence
+!reports/cost/aws/aws-cost-2026-09-01.summary.json
+!reports/cost/azure/azure-cost-2026-09-01.summary.json
+!reports/cost/summary/multicloud-cost-2026-09-01.json
+!reports/cost/summary/multicloud-cost-baseline.json
+
+!reports/compliance/aws/aws-compliance-evidence.json
+!reports/compliance/azure/azure-compliance-evidence.json
+!reports/compliance/summary/multicloud-compliance-evidence.json
