@@ -81,7 +81,7 @@ resource "aws_iam_role_policy" "github_remediation_tag_access" {
           "ec2:CreateTags",
         ]
 
-        Resource = "arn:aws:ec2:us-east-1:931058976119:instance/*"
+        Resource = "arn:aws:ec2:us-east-1:${data.aws_caller_identity.current.account_id}:instance/*"
 
         Condition = {
           StringEquals = {

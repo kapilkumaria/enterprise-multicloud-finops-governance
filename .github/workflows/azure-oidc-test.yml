@@ -19,9 +19,9 @@ jobs:
       - name: Login to Azure with OIDC
         uses: azure/login@v3
         with:
-          client-id: 489decfa-8409-4a78-a507-e02aa77ab521
-          tenant-id: 78591d21-16e0-46d0-8cbb-95fcc94db601
-          subscription-id: a72a48ad-a95c-4f18-8c17-556abbc0fa2d
+          client-id: ${{ vars.AZURE_DEPLOY_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Verify Azure account
         run: |
@@ -39,7 +39,7 @@ jobs:
         run: |
           SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
 
-          if [ "$SUBSCRIPTION_ID" != "a72a48ad-a95c-4f18-8c17-556abbc0fa2d" ]; then
+          if [ "$SUBSCRIPTION_ID" != "${{ vars.AZURE_SUBSCRIPTION_ID }}" ]; then
             echo "ERROR - unexpected Azure subscription: $SUBSCRIPTION_ID"
             exit 1
           fi

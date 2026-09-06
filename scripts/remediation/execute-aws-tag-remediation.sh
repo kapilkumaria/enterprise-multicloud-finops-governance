@@ -110,7 +110,12 @@ lifecycle_result="$(
 [[ "$remediation_id" == "rem-finding-aws-live-tag-001" ]] \
   || error "unexpected remediation ID"
 
-[[ "$resource_identifier" == "arn:aws:ec2:us-east-1:931058976119:instance/i-033b19d090406151a" ]] \
+[[ -n "${AWS_ACCOUNT_ID:-}" ]] || error "AWS_ACCOUNT_ID is required"
+[[ -n "${AWS_GOVERNED_INSTANCE_ID:-}" ]] || error "AWS_GOVERNED_INSTANCE_ID is required"
+
+EXPECTED_RESOURCE_IDENTIFIER="arn:aws:ec2:us-east-1:${AWS_ACCOUNT_ID}:instance/${AWS_GOVERNED_INSTANCE_ID}"
+
+[[ "$resource_identifier" == "$EXPECTED_RESOURCE_IDENTIFIER" ]] \
   || error "resource is outside the approved controlled-remediation target"
 
 [[ "$desired_value" == "CC-PLATFORM" ]] \
@@ -148,10 +153,10 @@ caller_arn="$(
     --output text
 )"
 
-[[ "$account_id" == "931058976119" ]] \
+[[ "$account_id" == "$AWS_ACCOUNT_ID" ]] \
   || error "unexpected AWS account"
 
-[[ "$caller_arn" == arn:aws:sts::931058976119:assumed-role/mc-finops-github-aws-remediation/* ]] \
+[[ "$caller_arn" == arn:aws:sts::${AWS_ACCOUNT_ID}:assumed-role/mc-finops-github-aws-remediation/* ]] \
   || error "dedicated remediation role is not active"
 
 project_tag="$(

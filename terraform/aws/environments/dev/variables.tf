@@ -86,7 +86,5 @@ variable "aws_budget_notification_emails" {
   description = "Email recipients for AWS monthly budget notifications."
   type        = list(string)
 
-  default = [
-    "kapil.azure.lab@gmail.com"
-  ]
+  default = []
 }

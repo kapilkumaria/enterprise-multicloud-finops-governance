@@ -93,7 +93,11 @@ lifecycle="$(
   jq -r '.result.remediation_result // empty' "$APPROVAL_EVIDENCE_FILE"
 )"
 
-EXPECTED_VM_ID='/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm'
+[[ -n "${AZURE_SUBSCRIPTION_ID:-}" ]] || error "AZURE_SUBSCRIPTION_ID is required"
+[[ -n "${AZURE_TENANT_ID:-}" ]] || error "AZURE_TENANT_ID is required"
+[[ -n "${AZURE_GOVERNED_VM_ID:-}" ]] || error "AZURE_GOVERNED_VM_ID is required"
+
+EXPECTED_VM_ID="$AZURE_GOVERNED_VM_ID"
 
 [[ "$schema_version" == "1.0" ]] \
   || error "unsupported schema version"
@@ -160,16 +164,19 @@ signed_in_identity="$(
     --output tsv
 )"
 
-[[ "$subscription_id" == "a72a48ad-a95c-4f18-8c17-556abbc0fa2d" ]] \
+[[ "$subscription_id" == "$AZURE_SUBSCRIPTION_ID" ]] \
   || error "unexpected Azure subscription"
 
-[[ "$tenant_id" == "78591d21-16e0-46d0-8cbb-95fcc94db601" ]] \
+[[ "$tenant_id" == "$AZURE_TENANT_ID" ]] \
   || error "unexpected Azure tenant"
 
 [[ "$signed_in_user_type" == "servicePrincipal" ]] \
   || error "Azure authentication is not using a service principal"
 
-[[ "$signed_in_identity" == "49c2dd42-7a23-4765-84a3-7eb604e07c96" ]] \
+[[ -n "${AZURE_REMEDIATION_CLIENT_ID:-}" ]] \
+  || error "AZURE_REMEDIATION_CLIENT_ID is required"
+
+[[ "$signed_in_identity" == "$AZURE_REMEDIATION_CLIENT_ID" ]] \
   || error "dedicated Azure remediation identity is not active"
 
 echo "PASS - dedicated Azure remediation identity active"

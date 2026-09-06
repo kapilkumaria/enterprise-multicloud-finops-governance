@@ -19,10 +19,10 @@ jobs:
       - name: Configure AWS credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
-          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-deploy
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/mc-finops-github-aws-deploy
           role-session-name: mc-finops-oidc-test
           aws-region: us-east-1
-          allowed-account-ids: 931058976119
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
 
       - name: Verify AWS identity
         run: |
@@ -32,7 +32,7 @@ jobs:
         run: |
           ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 
-          if [ "$ACCOUNT_ID" != "931058976119" ]; then
+          if [ "$ACCOUNT_ID" != "${{ vars.AWS_ACCOUNT_ID }}" ]; then
             echo "ERROR: Unexpected AWS account: $ACCOUNT_ID"
             exit 1
           fi

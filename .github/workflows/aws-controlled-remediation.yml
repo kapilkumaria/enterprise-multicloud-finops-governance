@@ -48,7 +48,7 @@ jobs:
               environment: "dev",
               control_id: "TAG-001",
               resource_type: "aws_instance",
-              resource_identifier: "arn:aws:ec2:us-east-1:931058976119:instance/i-033b19d090406151a",
+              resource_identifier: "arn:aws:ec2:us-east-1:${{ vars.AWS_ACCOUNT_ID }}:instance/${{ vars.AWS_GOVERNED_INSTANCE_ID }}",
               compliant: false,
               tag_key: "CostCenter",
               observed_value: $observed,
@@ -95,7 +95,7 @@ jobs:
             reports/remediation/runtime/preapproval-evidence.json \
             'rem-finding-aws-live-tag-001' \
             'aws' \
-            'arn:aws:ec2:us-east-1:931058976119:instance/i-033b19d090406151a' \
+            'arn:aws:ec2:us-east-1:${{ vars.AWS_ACCOUNT_ID }}:instance/${{ vars.AWS_GOVERNED_INSTANCE_ID }}' \
             'set-tag' \
             'CostCenter' \
             "$CURRENT_VALUE" \
@@ -162,7 +162,7 @@ jobs:
             and .remediation.cloud == "aws"
             and ((.remediation.environment // .metadata.environment) == "dev")
             and .remediation.resource_identifier ==
-              "arn:aws:ec2:us-east-1:931058976119:instance/i-033b19d090406151a"
+              "arn:aws:ec2:us-east-1:${{ vars.AWS_ACCOUNT_ID }}:instance/${{ vars.AWS_GOVERNED_INSTANCE_ID }}"
             and .remediation.action_type == "set-tag"
             and .remediation.tag_key == "CostCenter"
             and .approval.approved == true
@@ -176,7 +176,7 @@ jobs:
       - name: Assume dedicated AWS remediation role
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
-          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-remediation
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/mc-finops-github-aws-remediation
           aws-region: us-east-1
 
       - name: Prove remediation identity
@@ -192,12 +192,15 @@ jobs:
 
           echo "AWS caller ARN: $CALLER_ARN"
 
-          [[ "$CALLER_ARN" == arn:aws:sts::931058976119:assumed-role/mc-finops-github-aws-remediation/* ]]
+          [[ "$CALLER_ARN" == arn:aws:sts::${{ vars.AWS_ACCOUNT_ID }}:assumed-role/mc-finops-github-aws-remediation/* ]]
 
           echo "AWS REMEDIATION OIDC RESULT: PASS"
 
       - name: Execute approved CostCenter remediation
         shell: bash
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_GOVERNED_INSTANCE_ID: ${{ vars.AWS_GOVERNED_INSTANCE_ID }}
         run: |
           set -euo pipefail
 

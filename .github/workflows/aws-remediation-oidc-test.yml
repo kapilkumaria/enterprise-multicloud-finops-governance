@@ -19,10 +19,10 @@ jobs:
       - name: Configure AWS remediation credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
-          role-to-assume: arn:aws:iam::931058976119:role/mc-finops-github-aws-remediation
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/mc-finops-github-aws-remediation
           role-session-name: mc-finops-remediation-oidc-test
           aws-region: us-east-1
-          allowed-account-ids: 931058976119
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
 
       - name: Verify remediation identity
         run: |
@@ -35,7 +35,7 @@ jobs:
           echo "Authenticated ARN: $ARN"
 
           case "$ARN" in
-            arn:aws:sts::931058976119:assumed-role/mc-finops-github-aws-remediation/*)
+            arn:aws:sts::${{ vars.AWS_ACCOUNT_ID }}:assumed-role/mc-finops-github-aws-remediation/*)
               echo "PASS - authenticated through expected remediation role"
               ;;
             *)

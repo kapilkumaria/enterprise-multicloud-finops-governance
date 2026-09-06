@@ -55,3 +55,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
     bucket_key_enabled = false
   }
 }
+
+
+data "aws_caller_identity" "current" {}

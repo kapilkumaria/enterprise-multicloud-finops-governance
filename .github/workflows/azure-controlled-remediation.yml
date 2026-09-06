@@ -49,7 +49,7 @@ jobs:
               environment: "dev",
               control_id: "TAG-001",
               resource_type: "azurerm_linux_virtual_machine",
-              resource_identifier: "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm",
+              resource_identifier: "${{ vars.AZURE_GOVERNED_VM_ID }}",
               compliant: false,
               tag_key: "CostCenter",
               observed_value: $observed,
@@ -93,7 +93,7 @@ jobs:
             reports/remediation/runtime/preapproval-evidence.json \
             'rem-finding-azure-live-tag-001' \
             'azure' \
-            '/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm' \
+            '${{ vars.AZURE_GOVERNED_VM_ID }}' \
             'set-tag' \
             'CostCenter' \
             "$CURRENT_VALUE" \
@@ -110,7 +110,7 @@ jobs:
             .remediation.remediation_id == "rem-finding-azure-live-tag-001"
             and .remediation.cloud == "azure"
             and .remediation.resource_identifier ==
-              "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm"
+              "${{ vars.AZURE_GOVERNED_VM_ID }}"
             and .remediation.action_type == "set-tag"
             and .remediation.tag_key == "CostCenter"
             and .before.observed_value == env.CURRENT_VALUE
@@ -169,7 +169,7 @@ jobs:
             and .remediation.cloud == "azure"
             and ((.remediation.environment // .metadata.environment) == "dev")
             and .remediation.resource_identifier ==
-              "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm"
+              "${{ vars.AZURE_GOVERNED_VM_ID }}"
             and .remediation.action_type == "set-tag"
             and .remediation.tag_key == "CostCenter"
             and .recommendation.desired_value == "CC-PLATFORM"
@@ -184,9 +184,9 @@ jobs:
       - name: Login with dedicated Azure remediation identity
         uses: azure/login@v3
         with:
-          client-id: '49c2dd42-7a23-4765-84a3-7eb604e07c96'
-          tenant-id: '78591d21-16e0-46d0-8cbb-95fcc94db601'
-          subscription-id: 'a72a48ad-a95c-4f18-8c17-556abbc0fa2d'
+          client-id: '${{ vars.AZURE_REMEDIATION_CLIENT_ID }}'
+          tenant-id: '${{ vars.AZURE_TENANT_ID }}'
+          subscription-id: '${{ vars.AZURE_SUBSCRIPTION_ID }}'
 
       - name: Prove remediation identity
         shell: bash
@@ -206,16 +206,21 @@ jobs:
           }'
 
           jq -e '
-            .id == "a72a48ad-a95c-4f18-8c17-556abbc0fa2d"
-            and .tenantId == "78591d21-16e0-46d0-8cbb-95fcc94db601"
+            .id == "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+            and .tenantId == "${{ vars.AZURE_TENANT_ID }}"
             and .user.type == "servicePrincipal"
-            and .user.name == "49c2dd42-7a23-4765-84a3-7eb604e07c96"
+            and .user.name == "${{ vars.AZURE_REMEDIATION_CLIENT_ID }}"
           ' <<<"$ACCOUNT_JSON" >/dev/null
 
           echo "AZURE REMEDIATION OIDC RESULT: PASS"
 
       - name: Execute approved CostCenter remediation
         shell: bash
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_GOVERNED_VM_ID: ${{ vars.AZURE_GOVERNED_VM_ID }}
+          AZURE_REMEDIATION_CLIENT_ID: ${{ vars.AZURE_REMEDIATION_CLIENT_ID }}
         run: |
           set -euo pipefail
 
@@ -232,7 +237,7 @@ jobs:
             .remediation.remediation_id == "rem-finding-azure-live-tag-001"
             and .remediation.cloud == "azure"
             and .remediation.resource_identifier ==
-              "/subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm"
+              "${{ vars.AZURE_GOVERNED_VM_ID }}"
             and .remediation.action_type == "set-tag"
             and .remediation.tag_key == "CostCenter"
             and .before.observed_value == "Engineering"

@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AZURE_CLIENT_ID: 49c2dd42-7a23-4765-84a3-7eb604e07c96
-      AZURE_TENANT_ID: 78591d21-16e0-46d0-8cbb-95fcc94db601
-      AZURE_SUBSCRIPTION_ID: a72a48ad-a95c-4f18-8c17-556abbc0fa2d
-      GOVERNED_VM_ID: /subscriptions/a72a48ad-a95c-4f18-8c17-556abbc0fa2d/resourceGroups/rg-mc-finops-dev-cac/providers/Microsoft.Compute/virtualMachines/mc-finops-dev-baseline-vm
+      AZURE_CLIENT_ID: ${{ vars.AZURE_REMEDIATION_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      GOVERNED_VM_ID: ${{ vars.AZURE_GOVERNED_VM_ID }}
 
     steps:
       - name: Checkout repository

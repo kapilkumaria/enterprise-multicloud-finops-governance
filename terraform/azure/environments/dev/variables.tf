@@ -92,7 +92,5 @@ variable "azure_budget_notification_emails" {
   description = "Email recipients for Azure monthly budget notifications."
   type        = list(string)
 
-  default = [
-    "kapil.azure.lab@gmail.com"
-  ]
+  default = []
 }
