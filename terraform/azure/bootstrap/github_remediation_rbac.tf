@@ -9,6 +9,7 @@ locals {
 }
 
 resource "azurerm_role_assignment" "github_remediation_reader" {
+  count                = var.enable_vm_remediation_rbac ? 1 : 0
   scope                = local.azure_remediation_vm_id
   role_definition_name = "Reader"
   principal_id         = azuread_service_principal.github_remediation.object_id
@@ -17,9 +18,25 @@ resource "azurerm_role_assignment" "github_remediation_reader" {
 }
 
 resource "azurerm_role_assignment" "github_remediation_tag_contributor" {
+  count                = var.enable_vm_remediation_rbac ? 1 : 0
   scope                = local.azure_remediation_vm_id
   role_definition_name = "Tag Contributor"
   principal_id         = azuread_service_principal.github_remediation.object_id
 
   principal_type = "ServicePrincipal"
+}
+
+
+###############################################################################
+# Preserve Terraform resource address history after introducing count.
+###############################################################################
+
+moved {
+  from = azurerm_role_assignment.github_remediation_reader
+  to   = azurerm_role_assignment.github_remediation_reader[0]
+}
+
+moved {
+  from = azurerm_role_assignment.github_remediation_tag_contributor
+  to   = azurerm_role_assignment.github_remediation_tag_contributor[0]
 }

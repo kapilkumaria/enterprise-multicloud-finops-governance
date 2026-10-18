@@ -14,3 +14,10 @@ variable "project_name" {
   type        = string
   default     = "mc-finops"
 }
+
+
+variable "enable_vm_remediation_rbac" {
+  description = "Whether to manage VM-scoped remediation RBAC assignments."
+  type        = bool
+  default     = false
+}

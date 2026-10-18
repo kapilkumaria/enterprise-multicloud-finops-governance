@@ -22,5 +22,5 @@ resource "azuread_application_federated_identity_credential" "github_remediation
 
   issuer = "https://token.actions.githubusercontent.com"
 
-  subject = "repo:kapilkumaria@42500918/enterprise-multicloud-finops-governance@1352786623:ref:refs/heads/main"
+  subject = "repo:kapilkumaria/enterprise-multicloud-finops-governance:ref:refs/heads/main"
 }
